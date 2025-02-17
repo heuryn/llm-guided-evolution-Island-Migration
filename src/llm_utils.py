@@ -40,13 +40,13 @@ def clean_code_from_llm(code_from_llm):
         #return ""
 
 
-def generate_augmented_code(txt2llm, augment_idx, apply_quality_control, top_p, llm_model, temperature, hugging_face=False):
+def generate_augmented_code(txt2llm, augment_idx, apply_quality_control, top_p, llm_model, temperature):
     """Generates augmented code using Mixtral."""
     print("LLM being used: ", llm_model)
     box_print("PROMPT TO LLM", print_bbox_len=60, new_line_end=False)
     print(txt2llm, flush=True)
     
-    if hugging_face is False:
+    if HUGGING_FACE_BOOL is False:
         if llm_model == LLM_MIXTRAL:
             llm_code_generator = submit_mixtral
         elif llm_model == LLM_QWEN:
@@ -56,8 +56,8 @@ def generate_augmented_code(txt2llm, augment_idx, apply_quality_control, top_p, 
         elif llm_model == LLM_DEEPSEEK:
             llm_code_generator = submit_deepseek
         else:
-            print("NO LLM SPECIFIED: USING QWEN2.5")
-            llm_code_generator = submit_qwen
+            print("NO LLM SPECIFIED: USING DEEPSEEK")
+            llm_code_generator = submit_deepseek
         qc_func = llm_code_qc
     else:
         if llm_model == LLM_MIXTRAL:
@@ -351,7 +351,7 @@ def submit_deepseek(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1,
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
-        torch_dtype=bfloat16,
+        torch_dtype=float16,
         device_map='auto'
     )
     model.eval()
@@ -390,7 +390,7 @@ def submit_gemma(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1,
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
-        torch_dtype=bfloat16,
+        torch_dtype=float16,
         device_map='auto'
     )
     model.eval()

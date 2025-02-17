@@ -8,6 +8,7 @@ import pickle
 import argparse
 import subprocess
 import numpy as np
+from functools import partial
 from deap import base, creator, tools
 from deap.tools import HallOfFame
 from src.utils.print_utils import print_population, print_scores, box_print, print_job_info
@@ -97,13 +98,16 @@ def generate_template(PROB_EOT, GEN_COUNT, TOP_N_GENES, SOTA_ROOT, SEED_NETWORK,
 """
 Main Job Functions
 """  
-def write_bash_script(input_filename_x=f'{SOTA_ROOT}/network.py',
+def write_bash_script(
+                      llm_model,
+                      input_filename_x=f'{SOTA_ROOT}/network.py',
                       input_filename_y=None,
                       output_filename=f'{SOTA_ROOT}/models/network_x.py',
-                      python_file='src/llm_mutation.py', 
-                      llm_model = LLM_QWEN,
+                      python_file='src/llm_mutation.py',
                       top_p=0.1, temperature=0.2,
                      ):
+    
+    print("WHITING write_bash_script, llm_model: ", llm_model)
     
     def fetch_gene(filepath):
         return os.path.basename(filepath).replace('network_','').replace('.py','')
@@ -133,7 +137,7 @@ def write_bash_script(input_filename_x=f'{SOTA_ROOT}/network.py',
             file.write(template_txt)
             
         temp_text = f'{python_file} {input_filename_x} {output_filename} {file_path} --top_p {top_p} --temperature {temperature}'
-        python_runline = f"python {temp_text} --apply_quality_control '{QC_CHECK_BOOL}' --llm_model {llm_model} --hugging_face {HUGGING_FACE_BOOL}"
+        python_runline = f"python {temp_text} --apply_quality_control '{QC_CHECK_BOOL}' --llm_model {llm_model}"
         
     elif python_file=='src/llm_crossover.py':
         gene_id_parent2 = fetch_gene(input_filename_y)
@@ -141,7 +145,7 @@ def write_bash_script(input_filename_x=f'{SOTA_ROOT}/network.py',
                                                 mutation_type=None, gene_id_parent2=gene_id_parent2)
         
         temp_text = f"{python_file} {input_filename_x} {input_filename_y} {output_filename} --top_p {top_p} --temperature {temperature}"
-        python_runline = f"python {temp_text} --apply_quality_control '{QC_CHECK_BOOL}' --llm_model {llm_model} --hugging_face {HUGGING_FACE_BOOL}"
+        python_runline = f"python {temp_text} --apply_quality_control '{QC_CHECK_BOOL}' --llm_model {llm_model}"
     else:
         raise ValueError("Invalid python_file argument")
 
@@ -260,7 +264,7 @@ def generate_random_string(length=20):
     return random_string
 
 
-def create_individual(container, temp_min=0.05, temp_max=0.4):
+def create_individual(container, llm_model, temp_min=0.05, temp_max=0.4):
     box_print("Create Individual", print_bbox_len=60, new_line_end=False)
     out_dir = str(GENERATION)
     gene_id = generate_random_string(length=24)
@@ -272,6 +276,7 @@ def create_individual(container, temp_min=0.05, temp_max=0.4):
                                               input_filename_x=f'{SOTA_ROOT}/network.py',
                                               output_filename =f'{SOTA_ROOT}/models/network_{gene_id}.py',
                                               python_file='src/llm_mutation.py', 
+                                              llm_model=llm_model,
                                               top_p=0.1, temperature=temperature)
     # Log data
     GLOBAL_DATA[gene_id] = {'sub_flag':successful_sub_flag, 'job_id':job_id, 
@@ -295,6 +300,9 @@ def create_individual(container, temp_min=0.05, temp_max=0.4):
         
     return individual
 
+def create_population(n, llm_model):
+    individual_func = partial(toolbox.individual, llm_model=llm_model)
+    return tools.initRepeat(list, individual_func, n)
 
 def submit_run(gene_id):
     def write_bash_script_py(gene_id, train_file='./sota/ExquisiteNetV2/train.py'):
@@ -658,7 +666,7 @@ def customCrossover(ind1, ind2, llm_model):
     return offspring1, offspring2
 
 
-def customMutation(individual, llm_model, indpb, temp_min=0.02, temp_max=0.35, hf=False):
+def customMutation(individual, llm_model, indpb, temp_min=0.1, temp_max=0.6):
     """ Custom mutation function that randomly changes the temperature parameter of the individual's task and assigns a new ID.
     Parameters:
     individual (list): The individual to be mutated.
@@ -668,7 +676,7 @@ def customMutation(individual, llm_model, indpb, temp_min=0.02, temp_max=0.35, h
     """
     # Check if mutation occurs (based on the mutation probability)
     # if random.random() < indpb: # TODO: connect this to temp
-
+    print('customMutation, llm_model:', llm_model)
 
     global DELAYED_CHECK
     out_dir = str(GENERATION)
@@ -683,7 +691,7 @@ def customMutation(individual, llm_model, indpb, temp_min=0.02, temp_max=0.35, h
                                               input_filename_x= f'{SOTA_ROOT}/models/network_{old_gene_id}.py',
                                               output_filename = f'{SOTA_ROOT}/models/network_{new_gene_id}.py',
                                               python_file='src/llm_mutation.py', 
-                                              top_p=0.1, llm_model=llm_model, temperature=temperature, hugging_face=hf)
+                                              top_p=0.1, llm_model=llm_model, temperature=temperature)
     
     # Update the individual with the new gene ID
     # individual[0] = new_gene_id
@@ -772,7 +780,7 @@ creator.create("Individual", list, fitness=creator.FitnessMulti, file_id=None)
 # Initialize the toolbox
 toolbox = base.Toolbox()
 toolbox.register("individual", create_individual, creator.Individual)
-toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+toolbox.register("population", create_population)
 toolbox.register("evaluate", evalModel)
 toolbox.register("mate", customCrossover)
 toolbox.register("mutate", customMutation, indpb=0.2)
@@ -791,17 +799,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run Generation')
     # Add arguments
     parser.add_argument('checkpoints', type=str, help='Save Dir')
-    parser.add_argument('--llm', type=str, help='Which LLM to use', default=LLM_MIXTRAL)
-    parser.add_argument('--hf', type=bool, help='Using Hugging Face Models', default=False)
+    parser.add_argument('--llm_model', type=str, help='Which LLM to use', default=LLM_MIXTRAL)
     # Parse the arguments
     args = parser.parse_args()
+    llm_model = args.llm_model
+
     print(DNA_TXT)
-    
-    llm_model = args.llm
+    print("ISLAND INTEGRATION llm_model: ", llm_model)
+
+
     if not llm_model or llm_model not in ISLAND_LLMS:
         print("Error in Island Generation: No LLM specified. Exiting script")
         exit(1)
 
+    
     # Load a checkpoint if available
     checkpoint, start_gen = load_checkpoint(folder_name=args.checkpoints)
     if checkpoint:
@@ -815,7 +826,7 @@ if __name__ == "__main__":
         # Create an initial population
         start_gen = 0
         box_print("CREATING POPULATION FROM SEED CODE")
-        population = toolbox.population(n=start_population_size)
+        population = toolbox.population(n=start_population_size, llm_model=llm_model)
         box_print("Batch Checking Created Genes", print_bbox_len=60, new_line_end=False)
         delayed_creation_check(population)
         hof = tools.HallOfFame(hof_size)
@@ -841,7 +852,10 @@ if __name__ == "__main__":
     # These bypass the mutation and cross-over so we dont lose them
     elites = tools.selSPEA2(population, num_elites)
     # Select the next generation's parents
-    offspring = toolbox.select(population, population_size)
+    if len(population) < population_size:
+        offspring = toolbox.select(population, len(population))
+    else:
+        offspring = toolbox.select(population, population_size)
     print_population(offspring, GLOBAL_DATA)
     
     print([len(GLOBAL_DATA_HIST), len(GLOBAL_DATA), len(population), len(offspring)])
@@ -871,7 +885,7 @@ if __name__ == "__main__":
     box_print("Mutating", print_bbox_len=60, new_line_end=False)
     for mutant in offspring:
         if random.random() < mutation_probability:
-            toolbox.mutate(individual=mutant, llm_model=llm_model, hf=args.hf)
+            toolbox.mutate(individual=mutant, llm_model=llm_model)
             del mutant.fitness.values
             
     box_print(f"GLOBAL_DATA_ANCESTERY", new_line_end=False)
@@ -915,7 +929,7 @@ if __name__ == "__main__":
     save_checkpoint(gen, folder_name=args.checkpoints)
     LINKED_GENES = {}
     # mutate x prompts
-    mutate_prompts(curr_llm, hugging_face=args.hf)
+    mutate_prompts(llm_model)
         
     print("-- End of Evolution --")
     best_ind = tools.selBest(population, 1)[0]

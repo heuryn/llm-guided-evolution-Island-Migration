@@ -112,8 +112,8 @@ if __name__ == "__main__":
         print("Starting generation " + str(gen), flush=True)
         job_ids = []
         for i in range(num_islands):
-            print("Generating Island " + str(i), flush=True)
             curr_llm = ISLAND_LLMS[i]
+            print("Generating Island " + curr_llm, flush=True)
             checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
             
             job_id = submit_run(island_script, PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS.format(curr_llm, CONDA_ENV, checkpoint_path, curr_llm, HUGGING_FACE_BOOL))

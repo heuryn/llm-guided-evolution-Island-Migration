@@ -14,24 +14,33 @@ from huggingface_hub import InferenceClient
 import textwrap
 from transformers import AutoTokenizer
 
-MODEL="Qwen/Qwen2.5-72B-Instruct"
+#MODEL="Qwen/Qwen2.5-72B-Instruct"
 #MODEL="mistralai/Mixtral-8x7B-Instruct-v0.1"
 #MODEL="google/gemma-2-2b-it"
+#MODEL="deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
+MODEL="google/gemma-2-27b-it"
 
 def submit_llm(txt2llm, max_new_tokens=764, top_p=0.15, temperature=0.1, 
                    model_id=MODEL, return_gen=False):
     max_new_tokens = np.random.randint(800, 1000)
+    print("LLM being used: ", model_id)
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
         torch_dtype=bfloat16,
-        device_map='auto'
+        device_map='auto',
+        token="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"
     )
     model.eval()
     print(model.device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+    #tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_id,
+        trust_remote_code=True,
+        use_auth_token="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"  # include this if the model requires authentication
+    )
 
     generate_text = transformers.pipeline(
         model=model, tokenizer=tokenizer,

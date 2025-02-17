@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=LLMTest
+#SBATCH --job-name=IslandsController
 #SBATCH -N1 --ntasks-per-node=4
 #SBATCH --mem-per-gpu=16G
 #SBATCH --time=08:00:00
