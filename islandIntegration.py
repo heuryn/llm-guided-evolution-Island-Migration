@@ -814,6 +814,8 @@ if __name__ == "__main__":
 
     
     # Load a checkpoint if available
+    # this is crucial for carrying data across multiple generations
+
     checkpoint, start_gen = load_checkpoint(folder_name=args.checkpoints)
     if checkpoint:
         box_print("LOADING CHECKPOINT")
@@ -843,19 +845,44 @@ if __name__ == "__main__":
     TOP_N_GENES = tools.selSPEA2(population, NUM_EOT_ELITES)
     box_print(f"STARTING GENERATION: {gen}", new_line_end=False)
     print_population(population, GLOBAL_DATA)
+
+
     box_print(f"Invalid Removal", print_bbox_len=60, new_line_end=False)
     # Remove individuals with placeholder fitness
     population = [ind for ind in population if ind.fitness.values != INVALID_FITNESS_MAX]
+
+
+
+
+    '''
+        IF POPULATION IS LESS THAN NUM_ELITE INDIVIDUALS, GENERATE MORE FROM SCRATCH
+    '''
+
+    box_print("CURRENT POPULATION SIZE:", len(population))
+    while len(population) < num_elites:
+        print("MINIMUM NUMBER OF IND NOT ACHIEVED, CREATING MORE")
+        population.extend(toolbox.population(n=start_population_size, llm_model=llm_model))
+        for ind in population:
+            ind.fitness.values = PLACEHOLDER_FITNESS
+        check_and_update_fitness(population)
+        population = [ind for ind in population if ind.fitness.values != INVALID_FITNESS_MAX]
+        box_print("CURRENT POPULATION SIZE:", len(population))
+    
     print_population(population, GLOBAL_DATA)
     # Select the next generation's parents
     box_print(f"Selection", print_bbox_len=60, new_line_end=False)
     # These bypass the mutation and cross-over so we dont lose them
     elites = tools.selSPEA2(population, num_elites)
     # Select the next generation's parents
+
+    
     if len(population) < population_size:
-        offspring = toolbox.select(population, len(population))
+        print(f"Selecting {len(population)} offspring")
+        offspring = toolbox.select(population, len(population) - (len(population) % 4))
     else:
+        print(f"Selecting {population_size} offspring")
         offspring = toolbox.select(population, population_size)
+    
     print_population(offspring, GLOBAL_DATA)
     
     print([len(GLOBAL_DATA_HIST), len(GLOBAL_DATA), len(population), len(offspring)])

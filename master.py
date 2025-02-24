@@ -130,6 +130,6 @@ if __name__ == "__main__":
             break
             
         if gen % 5 == 0:
-            migrateIslands(args.islands)
+            migrateIslands(num_islands)
     
     print("Finished evolutionary loop")

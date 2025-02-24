@@ -39,13 +39,7 @@ def clean_code_from_llm(code_from_llm):
         return "ERROR"  # Return ERROR
         #return ""
 
-
-def generate_augmented_code(txt2llm, augment_idx, apply_quality_control, top_p, llm_model, temperature):
-    """Generates augmented code using Mixtral."""
-    print("LLM being used: ", llm_model)
-    box_print("PROMPT TO LLM", print_bbox_len=60, new_line_end=False)
-    print(txt2llm, flush=True)
-    
+def get_llm_code_generator(llm_model):
     if HUGGING_FACE_BOOL is False:
         if llm_model == LLM_MIXTRAL:
             llm_code_generator = submit_mixtral
@@ -70,6 +64,15 @@ def generate_augmented_code(txt2llm, augment_idx, apply_quality_control, top_p, 
             print("NO LLM SPECIFIED: USING HF MIXTRAL")
             llm_code_generator = submit_mixtral_hf
         qc_func = llm_code_qc_hf
+    return llm_code_generator, qc_func
+
+def generate_augmented_code(txt2llm, augment_idx, apply_quality_control, top_p, llm_model, temperature):
+    """Generates augmented code using Mixtral."""
+    print("LLM being used: ", llm_model)
+    box_print("PROMPT TO LLM", print_bbox_len=60, new_line_end=False)
+    print(txt2llm, flush=True)
+    
+    llm_code_generator, qc_func = get_llm_code_generator(llm_model)
     
     if apply_quality_control:
         base_code = retrieve_base_code(augment_idx)
@@ -275,12 +278,13 @@ def submit_mixtral(txt2mixtral, max_new_tokens=764, top_p=0.15, temperature=0.1,
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
-        torch_dtype=bfloat16,
-        device_map='auto'
+        torch_dtype=float16,
+        device_map='auto',
+        token=HF_TOKEN
     )
     model.eval()
     print(model.device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id, token=HF_TOKEN)
 
     generate_text = transformers.pipeline(
         model=model, tokenizer=tokenizer,
@@ -430,22 +434,10 @@ def mutate_prompts(llm_model, n=5, hugging_face=False):
             prompt_text = file.read()
         prompt_text = prompt_text.split("```")[0].strip()
         prompt = "Can you rephrase this text:\n```\n{}\n```".format(prompt_text)
-        temp = np.random.uniform(0.01, 0.4)
+        temp = np.random.uniform(0.1, 0.4)
 
-        if hugging_face is False:
-            if llm_model == 'mixtral':
-                llm_code_generator = submit_mixtral
-            elif llm_model == 'qwen':
-                llm_code_generator = submit_qwen
-            elif llm_model == 'gemma':
-                llm_code_generator = submit_gemma
-        else:
-            if llm_model == 'mixtral':
-                llm_code_generator = submit_mixtral_hf
-            elif llm_model == 'llama3':
-                llm_code_generator = submit_llama3_hf
-            elif llm_model == 'gemma2':
-                llm_code_generator = submit_gemma2_hf
+        llm_code_generator, qc_func = get_llm_code_generator(llm_model)
+        print("Mutating Prompts with llm:", llm_model)
         output = llm_code_generator(prompt, temperature=temp).strip()
         if "```" in output:
             output = output.split("```")[0]
