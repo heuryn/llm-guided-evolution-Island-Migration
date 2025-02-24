@@ -1,218 +1,169 @@
+import ast
 import math
 import numpy as np
-from collections import defaultdict, Counter
+from collections import Counter
 
-####################################
-# Self-CIDEr Helper Functions
-####################################
+# =============================================================================
+# Helper Functions for AST-based Comparison
+# =============================================================================
 
-def extract_ngrams(text, n):
+def GetAstNodeCounts(code: str) -> dict:
     """
-    Extracts all n-grams (as tuples) from the text using whitespace tokenization.
-    """
-    #Splits text into tokens (whitespace-based)
-    tokens = text.split()
-    ngrams = []
-    if len(tokens) < n: #Handles edge case for short texts
-        return ngrams
-    #Generates overlapping n-grams as tuples
-    for i in range(len(tokens) - n + 1): 
-        ngram = tuple(tokens[i:i+n])
-        ngrams.append(ngram)
-    return ngrams
-
-def compute_tf(text, n):
-    """
-    Computes term frequency for n-grams of order n in the text.
-    Normalizes the counts by the total number of n-grams.
-    """
-    ngrams = extract_ngrams(text, n)
-    # Uses Counter for efficient frequency counting
-    tf = Counter(ngrams)
-    total = sum(tf.values())
-    if total > 0:
-        for key in tf:
-
-            tf[key] /= total
-    return tf
-
-def compute_idf(population, n, epsilon=1e-6):
-    """
-    Computes inverse document frequency for n-grams of order n in a population.
-    Uses the formula: idf = log((N + 1) / (df + 1) + epsilon)
-    """
-    N = len(population)
-    df = defaultdict(int)
-    for text in population:
-
-        ngrams = set(extract_ngrams(text, n))
-        for ngram in ngrams:
-            df[ngram] += 1
-    idf = {}
-    for ngram, count in df.items():
-        idf[ngram] = math.log((N + 1) / (count + 1) + epsilon)
-    return idf
-
-def compute_combined_idf(population, ngram_range=(1,4)):
-    """
-    Computes a combined IDF dictionary for each n in ngram_range.
-    Returns a dict mapping (n, ngram) to its IDF weight.
-    """
-    combined_idf = {}
-    for n in range(ngram_range[0], ngram_range[1]+1):
-        idf_n = compute_idf(population, n)
-        for ngram, weight in idf_n.items():
-            combined_idf[(n, ngram)] = weight
-
-    return combined_idf
-
-def compute_tf_idf(text, idf, n):
-    """
-    Computes the TF-IDF vector for a given text and n-gram order n.
-    """
-    tf = compute_tf(text, n)
-    tf_idf = {}
-
-    for ngram, freq in tf.items():
-        tf_idf[ngram] = freq * idf.get(ngram, 0.0)
-    return tf_idf
-
-def cosine_similarity(vec1, vec2):
-    """
-    Computes the cosine similarity between two TF-IDF vectors.
-    """
-    dot = sum(vec1.get(key, 0.0) * vec2.get(key, 0.0) for key in vec1)
-    norm1 = math.sqrt(sum(v**2 for v in vec1.values()))
+    Parse the code into an AST and return a dictionary counting the occurrences
+    of each node type.
     
-    norm2 = math.sqrt(sum(v**2 for v in vec2.values()))
-    if norm1 == 0 or norm2 == 0:
+    Using AST ensures that we compare the structure of the code rather than mere text,
+    making the diversity metric robust to cosmetic changes (e.g., comments, whitespace).
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        # In case of a syntax error, return an empty counter.
+        return Counter()
+    
+    # Use a visitor to count node types
+    counts = Counter()
+    for node in ast.walk(tree):
+        counts[type(node).__name__] += 1
+    return counts
+
+def ComputeCosineSimilarity(vectorA: dict, vectorB: dict) -> float:
+    """
+    Compute cosine similarity between two dictionaries representing feature vectors.
+    The keys are the AST node types and values are their counts.
+    """
+    # Create a set of all keys from both vectors
+    allKeys = set(vectorA.keys()).union(vectorB.keys())
+    dotProduct = sum(vectorA.get(key, 0) * vectorB.get(key, 0) for key in allKeys)
+    normA = math.sqrt(sum((vectorA.get(key, 0)) ** 2 for key in allKeys))
+    normB = math.sqrt(sum((vectorB.get(key, 0)) ** 2 for key in allKeys))
+    if normA == 0 or normB == 0:
         return 0.0
-    return dot / (norm1 * norm2)
+    return dotProduct / (normA * normB)
 
-def compute_self_cider_similarity(code1, code2, combined_idf, ngram_range=(1,4)):
+def ComputeAstDistance(code1: str, code2: str) -> float:
     """
-    Computes a Self-CIDErinspired similarity between two code strings.
-    For each n in ngram_range, computes cosine similarity using the corresponding TF-IDF vectors,
-    then returns the average similarity.
+    Compute a distance between two code strings based on their AST node counts.
+    We first compute the cosine similarity between the AST feature vectors, and then
+    define distance as 1 minus the cosine similarity.
     """
-    similarities = []
-    for n in range(ngram_range[0], ngram_range[1]+1):
-        # Filter IDF weights for the current n-gram order
-        idf_n = {ngram: weight for (order, ngram), weight in combined_idf.items() if order == n}
-        
-        vec1 = compute_tf_idf(code1, idf_n, n)
-        vec2 = compute_tf_idf(code2, idf_n, n)
-        sim = cosine_similarity(vec1, vec2)
-        similarities.append(sim)
-    return sum(similarities) / len(similarities) if similarities else 0.0
-
-def compute_self_cider_distance(code1, code2, combined_idf, ngram_range=(1,4)):
-    """
-    Converts Self-CIDEr similarity into a distance metric.
-    Distance is defined as 1 - similarity.
-    """
-    similarity = compute_self_cider_similarity(code1, code2, combined_idf, ngram_range)
+    counts1 = GetAstNodeCounts(code1)
+    counts2 = GetAstNodeCounts(code2)
+    similarity = ComputeCosineSimilarity(counts1, counts2)
     return 1 - similarity
 
-####################################
-# Diversity Quantifier Functions
-####################################
+# =============================================================================
+# Diversity Quantifier Functions (using AST)
+# =============================================================================
 
-def computeWithinIslandDiversity(population, ngram_range=(1,4)):
+def ComputeIntraDiversity(population: list) -> float:
     """
-    Calculates the average pairwise Self-CIDEr distance (diversity) within an island.
+    Compute the average pairwise AST distance among all individuals (code files)
+    within a single island.
+    
+    This measures how structurally diverse the code files are.
     """
     n = len(population)
     if n < 2:
         return 0.0
-    combined_idf = compute_combined_idf(population, ngram_range)
-    total_distance = 0.0
+    totalDistance = 0.0
     count = 0
     for i in range(n):
         for j in range(i + 1, n):
-            distance = compute_self_cider_distance(population[i], population[j], combined_idf, ngram_range)
-            total_distance += distance
+            distance = ComputeAstDistance(population[i], population[j])
+            totalDistance += distance
             count += 1
-    return total_distance / count
+    return totalDistance / count
 
-def compute_diversity_contribution(individual, population, ngram_range=(1,4)):
+def ComputeDiversityContribution(individual: str, population: list) -> float:
     """
-    Calculates how unique an individual is relative to others in its island.
-    Returns the average Self-CIDEr distance from this individual to all others.
+    Compute the diversity contribution of a single individual.
+    This is the average AST distance between this individual and every other in the island.
     """
     if len(population) < 2:
         return 0.0
-    combined_idf = compute_combined_idf(population, ngram_range)
-    distances = [
-        compute_self_cider_distance(individual, other, combined_idf, ngram_range)
-        for other in population if other != individual
-    ]
-    return sum(distances) / len(distances) if distances else 0.0
+    distances = [ComputeAstDistance(individual, other) for other in population if other != individual]
+    return sum(distances) / len(distances)
 
-def computeAmongIslandsDiversity(island1, island2, ngram_range=(1,4)):
+def ComputeInterDiversity(island1: list, island2: list) -> float:
     """
-    Calculates the average Self-CIDEr distance between individuals from two different islands.
+    Compute the average AST distance between every individual in island1 and every
+    individual in island2.
+    
+    This provides a measure of how structurally different two islands are.
     """
-    combined_population = island1 + island2
-    if not combined_population:
-        return 0.0
-    combined_idf = compute_combined_idf(combined_population, ngram_range)
     distances = []
     for code1 in island1:
         for code2 in island2:
-            distances.append(compute_self_cider_distance(code1, code2, combined_idf, ngram_range))
-    return sum(distances) / len(distances) if distances else 0.0
+            distances.append(ComputeAstDistance(code1, code2))
+    if not distances:
+        return 0.0
+    return sum(distances) / len(distances)
 
-def migration_decision(population, fitness_scores, alpha=0.5, beta=0.5, migration_rate=0.2, ngram_range=(1,4)):
+def MigrationDecision(population: list, fitnessScores: list, alpha: float = 0.8, beta: float = 0.2, migrationRate: float = 0.2) -> list:
     """
-    Determines which individuals should migrate based on a composite score.
+    Decide which individuals should migrate based on a composite migration score.
     
-    The migration score for each individual is:
-         migration_score = alpha * fitness + beta * diversity_contribution
-    where diversity_contribution is the average Self-CIDEr distance to other individuals.
+    Each individual's migration score is a weighted combination of its fitness and its
+    diversity contribution (structural uniqueness).
     
-    migration_rate is the fraction of the population selected for migration.
+    Arguments:
+        population: list of code strings.
+        fitnessScores: list of fitness scores corresponding to each individual.
+        alpha: weight for the fitness component.
+        beta: weight for the diversity component.
+        migrationRate: fraction of the population to select for migration.
+    
+    Returns:
+        A list of code strings representing the migration candidates.
     """
-    migration_scores = []
-    for individual, fitness in zip(population, fitness_scores):
-
-        diversity_contrib = compute_diversity_contribution(individual, population, ngram_range)
-        migration_score = alpha * fitness + beta * diversity_contrib
-        migration_scores.append(migration_score)
+    migrationScores = []
+    for individual, fitness in zip(population, fitnessScores):
+        diversityContribution = ComputeDiversityContribution(individual, population)
+        # Combine fitness and diversity using the weighted sum
+        migrationScore = alpha * fitness + beta * diversityContribution
+        migrationScores.append(migrationScore)
     
-    num_to_migrate = max(1, int(len(population) * migration_rate))
-    indices = np.argsort(migration_scores)[-num_to_migrate:]
+    # Determine the number of individuals to migrate based on the migrationRate
+    numToMigrate = max(1, int(len(population) * migrationRate))
+    # Get the indices of the individuals with the highest migration scores
+    indices = np.argsort(migrationScores)[-numToMigrate:]
     return [population[i] for i in indices]
 
-# Example
-
+# =============================================================================
+# Example Usage & Testing
+# =============================================================================
 
 if __name__ == "__main__":
-    # Example island: individuals represented as code strings.
-    island_population = [
-        "def foo():\n    return 1",
-        "def foo():\n    return 2",
-        "def foo():\n    return 3",
-        "def foo():\n    return 4"
+    # Example island population: individuals are represented as code strings.
+    # These examples show slight structural differences.
+    islandPopulation = [
+        "def Foo():\n    return 1",
+        "def Foo():\n    x = 2\n    return x",
+        "def Foo():\n    for i in range(3):\n        print(i)\n    return 3",
+        "def Foo():\n    if True:\n        return 4\n    else:\n        return 0"
     ]
-    # Hypothetical fitness scores (e.g., from model evaluation)
-    fitness_scores = [0.9, 0.8, 0.85, 0.95]
     
-    # 1. Compute diversity within an island.
-    intra_div = computeWithinIslandDiversity(island_population)
-    print("Intra-Island Diversity (Self-CIDEr):", intra_div)
+    # Example fitness scores for these individuals (e.g., performance metrics)
+    fitnessScores = [0.9, 0.8, 0.85, 0.95]
     
-    # 2. Decide which individuals should migrate.
-    migrants = migration_decision(island_population, fitness_scores, alpha=0.7, beta=0.3, migration_rate=0.5)
-    print("\nMigration Candidates (Self-CIDEr):")
-    for candidate in migrants:
+    # Compute the intra-island diversity based on AST differences
+    intraDiversity = ComputeIntraDiversity(islandPopulation)
+    print("Intra-Island Diversity (AST-based):", intraDiversity)
+    
+    # Decide which individuals should migrate based on the composite migration score
+    migrationCandidates = MigrationDecision(islandPopulation, fitnessScores, alpha=0.7, beta=0.3, migrationRate=0.5)
+    print("\nMigration Candidates (AST-based):")
+    for candidate in migrationCandidates:
         print(candidate)
     
-    # 3. Compute diversity between two islands.
-    island_population2 = [
-        "def bar():\n    return 'a'",
-        "def bar():\n    return 'b'",
-        "def bar():\n    return 'c'"
+    # For demonstration, define a second island with different code structures.
+    islandPopulation2 = [
+        "def Bar():\n    return 'a'",
+        "def Bar():\n    x = 'b'\n    return x",
+        "def Bar():\n    for j in range(2):\n        print(j)\n    return 'c'"
     ]
-    inter_div = computeAmongIslandsDiversity(island_population, island_population2)
-    print("\nInter-Island Diversity (Self-CIDEr):", inter_div)
+    
+    # Compute the inter-island diversity between the two islands
+    interDiversity = ComputeInterDiversity(islandPopulation, islandPopulation2)
+    print("\nInter-Island Diversity (AST-based):", interDiversity)
