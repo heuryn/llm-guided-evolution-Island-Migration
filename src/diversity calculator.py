@@ -10,11 +10,13 @@ def extract_ngrams(text, n):
     """
     Extracts all n-grams (as tuples) from the text using whitespace tokenization.
     """
+    #Splits text into tokens (whitespace-based)
     tokens = text.split()
     ngrams = []
-    if len(tokens) < n:
+    if len(tokens) < n: #Handles edge case for short texts
         return ngrams
-    for i in range(len(tokens) - n + 1):
+    #Generates overlapping n-grams as tuples
+    for i in range(len(tokens) - n + 1): 
         ngram = tuple(tokens[i:i+n])
         ngrams.append(ngram)
     return ngrams
@@ -25,6 +27,7 @@ def compute_tf(text, n):
     Normalizes the counts by the total number of n-grams.
     """
     ngrams = extract_ngrams(text, n)
+    # Uses Counter for efficient frequency counting
     tf = Counter(ngrams)
     total = sum(tf.values())
     if total > 0:
