@@ -426,21 +426,19 @@ def submit_gemma(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1,
     
     
     
-def mutate_prompts(llm_model, n=5, hugging_face=False):
-    templates = np.random.choice(glob.glob(f'{ROOT_DIR}/templates/FixedPrompts/*/*.txt'), n)
-    for i, template in enumerate(templates):
-        path, filename = os.path.split(template)
-        with open(template, 'r') as file:
-            prompt_text = file.read()
-        prompt_text = prompt_text.split("```")[0].strip()
-        prompt = "Can you rephrase this text:\n```\n{}\n```".format(prompt_text)
-        temp = np.random.uniform(0.1, 0.4)
+def mutate_prompt(llm_model, template, hugging_face=HUGGING_FACE_BOOL):
+    path, filename = os.path.split(template)
+    with open(template, 'r') as file:
+        prompt_text = file.read()
+    prompt_text = prompt_text.split("```")[0].strip()
+    prompt = "Can you rephrase this text:\n```\n{}\n```".format(prompt_text)
+    temp = np.random.uniform(0.1, 0.4)
 
-        llm_code_generator, qc_func = get_llm_code_generator(llm_model)
-        print("Mutating Prompts with llm:", llm_model)
-        output = llm_code_generator(prompt, temperature=temp).strip()
-        if "```" in output:
-            output = output.split("```")[0]
-        output = output + "\n```python\n{}\n```"
-        with open(os.path.join(path, "mutant{}.txt".format(i)), 'w') as file:
-            file.write(output)
+    llm_code_generator, qc_func = get_llm_code_generator(llm_model)
+    print("Mutating Prompts with llm:", llm_model)
+    output = llm_code_generator(prompt, temperature=temp).strip()
+    if "```" in output:
+        output = output.split("```")[0]
+    output = output + "\n```python\n{}\n```"
+    with open(os.path.join(path, "mutant{}.txt".format(i)), 'w') as file:
+        file.write(output)

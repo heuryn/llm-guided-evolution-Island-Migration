@@ -69,7 +69,7 @@ QC_CHECK_BOOL = False
 HUGGING_FACE_BOOL = False
 #LLM_GPU = 'NVIDIAA100-SXM4-80GB|NVIDIAA10080GBPCIe|TeslaV100-PCIE-32GB|QuadroRTX4000|GeForceGTX1080Ti|GeForceGTX1080|TeslaV100-PCIE-32GB|TeslaV100S-PCIE-32GB'
 
-LLM_GPU = 'A100-80GB|H100'
+LLM_GPU = 'H100'
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=evaluateGene
 #SBATCH --time=08:00:00
@@ -109,7 +109,7 @@ LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH -G 2 
 #SBATCH -C "{}"
 #SBATCH --mem-per-gpu 80G
-#SBATCH -c 24
+#SBATCH -c 32
 #SBATCH --time=05:00:00
 
 echo "Launching AIsurBL"
@@ -124,7 +124,6 @@ conda activate {}
 # Set the TOKENIZERS_PARALLELISM environment variable if needed
 # export TOKENIZERS_PARALLELISM=false
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
-export CUDA_LAUNCH_BLOCKING=1
 
 # Run Python script
 {}
@@ -133,7 +132,7 @@ export CUDA_LAUNCH_BLOCKING=1
 
 PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS = """#!/bin/bash
 #SBATCH --job-name=LLM_Island_{}
-#SBATCH -N1 --ntasks-per-node=4
+#SBATCH -N1 --ntasks-per-node=16
 #SBATCH --mem-per-gpu=16G
 #SBATCH --time=08:00:00
 #SBATCH -oReport_islands-%j.out
@@ -155,6 +154,9 @@ export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 # Run Python script
 python islandIntegration.py {} --llm_model {}
 """
+
+
+
 
 
 """

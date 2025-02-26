@@ -14,7 +14,7 @@ def submit_run(tempFile, text):
     print(f"\t‣ Bash Script Saved to {tempFile}")
     job_id = None
     successful_sub_flag = False
-    result = subprocess.run(["sbatch", tempFile], capture_output=True, text=True)
+    result = subprocess.run([RUN_COMMAND, tempFile], capture_output=True, text=True)
     if result.returncode == 0:
         print("\t‣ Script Submitted Successfully.\n\t‣ Output:", result.stdout.strip())
         successful_sub_flag = True
@@ -177,6 +177,35 @@ def migrateIslands(topology, num_islands, checkpoints):
 
 
 
+def submit_mutate_prompts(llm_model, n=5):
+    prompt_job_ids = []
+    templates = np.random.choice(glob.glob(f'{ROOT_DIR}/templates/FixedPrompts/*/*.txt'), n)
+    file_path = './mutate_prompts_temp.sh'
+    for i, template in enumerate(templates):
+        python_runline = f"python src/llm_prompt_mutation.py --llm_model {llm_model} --template {template}"
+        script = LLM_BASH_SCRIPT_TEMPLATE.format(LLM_GPU, python_runline)
+
+        with open(file_path, 'w') as file:
+            file.write(script)
+        print(f"\t‣ Bash Script Saved to {file_path}")
+
+        job_id = None
+        successful_sub_flag = False
+        result = subprocess.run([RUN_COMMAND, file_path], capture_output=True, text=True)
+        if result.returncode == 0:
+            print("\t‣ Script Submitted Successfully.\n\t‣ Output:", result.stdout.strip())
+            successful_sub_flag = True
+            job_id = result.stdout.split('job ')[-1].strip()
+        else:
+            print("\t‣ Failed to Submit script.\n\t‣ Error:", result.stderr.strip())
+            successful_sub_flag = False
+            job_id = None
+        
+        prompt_job_ids.append(job_id)
+    return prompt_job_ids
+    
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run Generation')
@@ -207,14 +236,17 @@ if __name__ == "__main__":
     for gen in range(num_generations):
         print("Starting generation " + str(gen), flush=True)
         job_ids = []
+
+        # submit island generation jobs
         for i in range(num_islands):
             curr_llm = ISLAND_LLMS[i]
             print("Generating Island " + curr_llm, flush=True)
             checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
             
-            job_id = submit_run(island_script, PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS.format(curr_llm, CONDA_ENV, checkpoint_path, curr_llm, HUGGING_FACE_BOOL))
+            job_id = submit_run(island_script, PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS.format(curr_llm, CONDA_ENV, checkpoint_path, curr_llm))
             job_ids.append(job_id)
         
+        # check island generation jobs for completion
         done = True
         for i in range(len(job_ids)):
             done = check4job_completion(job_ids[i])
@@ -224,7 +256,22 @@ if __name__ == "__main__":
         if not done:
             print("Error occured in loop, job not done")
             break
-            
+
+
+        # mutate prompts
+        print("Mutating Prompts")
+        prompt_job_ids = submit_mutate_prompts(LLM_MIXTRAL)
+        done = True
+        for i in range(len(prompt_job_ids)):
+            done = check4job_completion(prompt_job_ids[i])
+            if not done:
+                break
+
+        if not done:
+            print("Error occured in loop, job not done")
+            break
+
+        # migrate individuals between islands
         if gen % 5 == 0:
             print("Starting island migration on generation " + str(gen), flush=True)
             migrateIslands(topology, num_islands, checkpoints)

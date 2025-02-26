@@ -12,7 +12,7 @@ from functools import partial
 from deap import base, creator, tools
 from deap.tools import HallOfFame
 from src.utils.print_utils import print_population, print_scores, box_print, print_job_info
-from src.llm_utils import split_file, retrieve_base_code, mutate_prompts
+from src.llm_utils import split_file, retrieve_base_code
 from src.cfg.constants import *
 
 
@@ -773,6 +773,9 @@ def true_nsga2(pop, k):
     new_pop = tools.selTournamentDCD(pop, k) # mults of 4
     return new_pop
 
+
+    
+
 # Define the problem
 creator.create("FitnessMulti", base.Fitness, weights=FITNESS_WEIGHTS)  # Adjust weights as needed
 creator.create("Individual", list, fitness=creator.FitnessMulti, file_id=None)
@@ -955,8 +958,7 @@ if __name__ == "__main__":
     hof.update(population)
     save_checkpoint(gen, folder_name=args.checkpoints)
     LINKED_GENES = {}
-    # mutate x prompts
-    mutate_prompts(llm_model)
+    
         
     print("-- End of Evolution --")
     best_ind = tools.selBest(population, 1)[0]
