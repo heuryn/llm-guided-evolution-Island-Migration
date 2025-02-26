@@ -153,7 +153,30 @@ def migrate(topology: nx.Graph, islands: dict[str, Island]):
 
     for i in migration:
         for j in migration[i]:
-            heapq.heappush(islands[i].individuals, j)
+            #move_file(j[0].name, j[1].path, i.path)
+            islands[i].add_individual(j)
 
-    #TODO Implement the actual file moving of individuals
 
+def move_file(file_name: str, source_folder: str, destination_folder: str):
+    try:
+        # Construct the full source and destination file paths
+        source_path = os.path.join(source_folder, file_name)
+        destination_path = os.path.join(destination_folder, file_name)
+        
+        # Check if the source file exists
+        if not os.path.isfile(source_path):
+            raise FileNotFoundError(f"The file {file_name} does not exist in {source_folder}.")
+        
+        # Check if the destination folder exists
+        if not os.path.isdir(destination_folder):
+            raise FileNotFoundError(f"The destination folder {destination_folder} does not exist.")
+        
+        # Move the file to the destination folder while keeping the same file name
+        shutil.move(source_path, destination_path)
+
+    except FileNotFoundError as e:
+        print(e)
+    except PermissionError:
+        print(f"Permission denied when trying to move the file.")
+    except Exception as e:
+        print(f"An error occurred: {e}")

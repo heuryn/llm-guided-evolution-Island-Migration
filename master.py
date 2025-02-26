@@ -1,5 +1,9 @@
 import os
 import argparse
+from deap import base, creator, tools
+from deap.tools import HallOfFame
+import islandIntegration
+import islands
 import subprocess
 import time
 from src.cfg.constants import *
@@ -86,12 +90,107 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
         time.sleep(check_interval)
         print(f'\t‣ Waiting on check4job_completion LLM job: {job_id} Time: {round(time.time() - start_time)}s', flush=True)
 
-def migrateIslands(islands):
+
+def unpackIslands(num_islands, checkpoints) -> list[islands.Island]:
+    islands = []
+
+    for i in range(num_islands):
+        curr_llm = ISLAND_LLMS[i]
+        print("Generating Island " + curr_llm, flush=True)
+        checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
+
+        checkpoint, start_gen = islandIntegration.load_checkpoint(folder_name=args.checkpoints)
+
+        if checkpoint:
+            GLOBAL_DATA = checkpoint["GLOBAL_DATA"]
+            GLOBAL_DATA_HIST = checkpoint["GLOBAL_DATA_HIST"]
+            GLOBAL_DATA_ANCESTERY = checkpoint["GLOBAL_DATA_ANCESTERY"]
+            population = checkpoint["population"]
+            hof = checkpoint["hof"]
+        else:
+            print("Missing Island ", checkpoint_path)
+            exit(0)
+        
+        individuals = []
+        for ind in population:
+            individual = islands.Individual(ind[0], ind.fitness.values)
+            individuals.append(individual)
+        
+        island = islands.Island(checkpoint_path, individuals)
+        islands.append(island)
+    
+    return islands
+
+def packIslands(islands: list[islands.Island]):
+    # Define the problem
+    creator.create("FitnessMulti", base.Fitness, weights=FITNESS_WEIGHTS)  # Adjust weights as needed
+    creator.create("Individual", list, fitness=creator.FitnessMulti, file_id=None)
+
+    # Initialize the toolbox
+    toolbox = base.Toolbox()
+    toolbox.register("individual", create_individual, creator.Individual)
+    toolbox.register("population", create_population)
+    toolbox.register("evaluate", evalModel)
+    toolbox.register("mate", customCrossover)
+    toolbox.register("mutate", customMutation, indpb=0.2)
+    toolbox.register("select", true_nsga2)
+
+    for island in islands:
+        island.path
+
+        population = toolbox.population()
+
+
+
+        curr_llm = ISLAND_LLMS[i]
+        print("Generating Island " + curr_llm, flush=True)
+        checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
+
+        checkpoint, start_gen = islandIntegration.load_checkpoint(folder_name=args.checkpoints)
+
+        if checkpoint:
+            GLOBAL_DATA = checkpoint["GLOBAL_DATA"]
+            GLOBAL_DATA_HIST = checkpoint["GLOBAL_DATA_HIST"]
+            GLOBAL_DATA_ANCESTERY = checkpoint["GLOBAL_DATA_ANCESTERY"]
+            population = checkpoint["population"]
+            hof = checkpoint["hof"]
+        else:
+            print("Missing Island ", checkpoint_path)
+            exit(0)
+        
+        individuals = []
+        for ind in population:
+            individual = islands.Individual(ind[0], ind.fitness.values)
+            individuals.append(individual)
+        
+        island = islands.Island(checkpoint_path, individuals)
+        islands.append(island)
+    
+    return islands
+
+
+def migrateIslands(toplogy, num_islands, checkpoints):
     # Load checkpoint data for every island
     # add some individuals to other islands
     # Save them back to checkpoints
-    print("-" * 20)
-    print("Simulating Migration")
+    
+
+        
+        
+
+            
+
+
+        
+
+
+
+
+   islands = unpackIslands()
+
+    
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run Generation')
@@ -130,6 +229,7 @@ if __name__ == "__main__":
             break
             
         if gen % 5 == 0:
-            migrateIslands(num_islands)
+            print("Starting island migration on generation " + str(gen), flush=True)
+            migrateIslands(None, num_islands, checkpoints)
     
     print("Finished evolutionary loop")
