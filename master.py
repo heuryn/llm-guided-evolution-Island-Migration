@@ -93,14 +93,12 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
 
 def unpackIslands(num_islands, checkpoints) -> list[islands.Island]:
     islands = []
-
     for i in range(num_islands):
         curr_llm = ISLAND_LLMS[i]
-        print("Generating Island " + curr_llm, flush=True)
+        print("Unpacking island " + curr_llm, flush=True)
         checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
-
         checkpoint, start_gen = islandIntegration.load_checkpoint(folder_name=args.checkpoints)
-
+        
         if checkpoint:
             GLOBAL_DATA = checkpoint["GLOBAL_DATA"]
             GLOBAL_DATA_HIST = checkpoint["GLOBAL_DATA_HIST"]
@@ -118,7 +116,6 @@ def unpackIslands(num_islands, checkpoints) -> list[islands.Island]:
         
         island = islands.Island(checkpoint_path, individuals)
         islands.append(island)
-    
     return islands
 
 def packIslands(islands: list[islands.Island]):
@@ -169,26 +166,15 @@ def packIslands(islands: list[islands.Island]):
     return islands
 
 
-def migrateIslands(toplogy, num_islands, checkpoints):
+def migrateIslands(topology, num_islands, checkpoints):
     # Load checkpoint data for every island
     # add some individuals to other islands
     # Save them back to checkpoints
-    
 
-        
-        
+    islands = unpackIslands(num_islands, checkpoints)
+    new_islands = islands.migrate(topology, islands)
+    packIslands(new_islands)
 
-            
-
-
-        
-
-
-
-
-   islands = unpackIslands()
-
-    
 
 
 
@@ -206,7 +192,18 @@ if __name__ == "__main__":
     if num_islands >= MAX_ISLANDS:
         print("Number of islands exceeds maximum allowed: " + str(MAX_ISLANDS))
         exit(1)
-    
+
+
+    # initialize the graph topology
+    islands_list = []
+    for i in range(num_islands):
+        curr_llm = ISLAND_LLMS[i]
+        checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
+        island = islands.Island(checkpoint_path, [])
+        islands_list.append(island) 
+    topology = islands.generate_graph_topology(islands_list, islands.Topology.FULL)
+
+    # start generation
     for gen in range(num_generations):
         print("Starting generation " + str(gen), flush=True)
         job_ids = []
@@ -230,6 +227,6 @@ if __name__ == "__main__":
             
         if gen % 5 == 0:
             print("Starting island migration on generation " + str(gen), flush=True)
-            migrateIslands(None, num_islands, checkpoints)
+            migrateIslands(topology, num_islands, checkpoints)
     
     print("Finished evolutionary loop")
