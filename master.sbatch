@@ -14,7 +14,7 @@ echo "Started on `/bin/hostname`"
 module load cuda/12
 module load anaconda3
 
-conda activate llmIntegration
+conda activate llmIslandsEnv
 conda info
 
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/

@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=LLM_Island_qwen25
-#SBATCH -N1 --ntasks-per-node=4
+#SBATCH --job-name=LLM_Island_gemma2
+#SBATCH -N1 --ntasks-per-node=16
 #SBATCH --mem-per-gpu=16G
 #SBATCH --time=08:00:00
 #SBATCH -oReport_islands-%j.out
@@ -14,10 +14,10 @@ echo "Started on `/bin/hostname`"
 module load cuda/12
 module load anaconda3
 
-conda activate llmIntegration
+conda activate llmIslandsEnv
 conda info
 
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
 # Run Python script
-python islandIntegration.py first_test/island_qwen25 --llm qwen25 --hf False
+python islandIntegration.py first_test/island_gemma2 --llm_model gemma2

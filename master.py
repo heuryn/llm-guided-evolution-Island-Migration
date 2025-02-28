@@ -60,12 +60,17 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
     bool: True if job completed successfully, False otherwise.
     """
 
+    if not job_id:
+        print("Checking for job completion: job_id is None")
+        return None
+
     if local_output is not None:
         state = check_contents_for_error(local_output)
         if state is None:
             raise Exception('Unexpected output from job')
         else:
             return state
+    
 
     start_time = time.time()
     output_file = f'Report_islands-{job_id}.out'
@@ -257,7 +262,7 @@ if __name__ == "__main__":
             print("Error occured in loop, job not done")
             break
 
-
+        '''
         # mutate prompts
         print("Mutating Prompts")
         prompt_job_ids = submit_mutate_prompts(LLM_MIXTRAL)
@@ -270,9 +275,10 @@ if __name__ == "__main__":
         if not done:
             print("Error occured in loop, job not done")
             break
+        '''
 
         # migrate individuals between islands
-        if gen % 5 == 0:
+        if gen % 1 == 0:
             print("Starting island migration on generation " + str(gen), flush=True)
             migrateIslands(topology, num_islands, checkpoints)
     

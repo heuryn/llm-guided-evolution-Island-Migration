@@ -2,9 +2,9 @@ import os
 import numpy as np
 
 
-ROOT_DIR = "/home/hice1/aganesan44/scratch/llm-island-migration/"
-CONDA_ENV = "llmIntegration"
-HF_TOKEN = "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"
+ROOT_DIR = "/home/hice1/jwarren315/scratch/llm-island-migration/"
+CONDA_ENV = "llmIslandsEnv"
+HF_TOKEN = "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"
 
 # DATA_PATH absolute or relative to ExquisiteNetV2
 DATA_PATH = os.path.join(ROOT_DIR, 'cifar10')
@@ -72,7 +72,7 @@ HUGGING_FACE_BOOL = False
 LLM_GPU = 'H100'
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=evaluateGene
-#SBATCH --time=08:00:00
+#SBATCH --time=01:00:00
 
 #SBATCH -G 1
 #SBATCH -C "{}"
@@ -103,14 +103,13 @@ export MKL_THREADING_LAYER=GNU
 
 LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=llm_oper
-#SBATCH --time=08:00:00
+#SBATCH --time=00:30:00
 
 
 #SBATCH -G 2 
 #SBATCH -C "{}"
 #SBATCH --mem-per-gpu 80G
 #SBATCH -c 32
-#SBATCH --time=05:00:00
 
 echo "Launching AIsurBL"
 hostname

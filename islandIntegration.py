@@ -856,15 +856,21 @@ if __name__ == "__main__":
 
 
 
-
     '''
         IF POPULATION IS LESS THAN NUM_ELITE INDIVIDUALS, GENERATE MORE FROM SCRATCH
+         * todo: clean up this code/consolidate with previous code *
     '''
 
     box_print("CURRENT POPULATION SIZE:", len(population))
     while len(population) < num_elites:
         print("MINIMUM NUMBER OF IND NOT ACHIEVED, CREATING MORE")
-        population.extend(toolbox.population(n=start_population_size, llm_model=llm_model))
+        GEN_COUNT = -1
+        TOP_N_GENES = None
+        LINKED_GENES = {}
+        GLOBAL_DATA = {}
+        GLOBAL_DATA_HIST = {}
+        GLOBAL_DATA_ANCESTERY = {}
+        population = toolbox.population(n=start_population_size, llm_model=llm_model)
         for ind in population:
             ind.fitness.values = PLACEHOLDER_FITNESS
         check_and_update_fitness(population)
