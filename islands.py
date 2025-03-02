@@ -154,7 +154,7 @@ def migrate(topology: nx.Graph, islands: dict[str, Island]):
     for i in migration:
         for j in migration[i]:
             #move_file(j[0].name, j[1].path, i.path)
-            islands[i].add_individual(j)
+            islands[i].add_individual(j[0])
 
 
 def move_file(file_name: str, source_folder: str, destination_folder: str):

@@ -2,11 +2,12 @@ import os
 import argparse
 from deap import base, creator, tools
 from deap.tools import HallOfFame
-import islandIntegration
-import islands
 import subprocess
 import time
+from islandIntegration import load_checkpoint, save_checkpoint
+from islands import Individual, Island, Topology, migrate, generate_graph_topology
 from src.cfg.constants import *
+from src.utils.print_utils import box_print
 
 def submit_run(tempFile, text):
     with open(tempFile, 'w') as file:
@@ -96,13 +97,13 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
         print(f'\t‣ Waiting on check4job_completion LLM job: {job_id} Time: {round(time.time() - start_time)}s', flush=True)
 
 
-def unpackIslands(num_islands, checkpoints) -> list[islands.Island]:
+def unpackIslands(num_islands, checkpoints) -> list[Island]:
     islands = []
     for i in range(num_islands):
         curr_llm = ISLAND_LLMS[i]
         print("Unpacking island " + curr_llm, flush=True)
         checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
-        checkpoint, start_gen = islandIntegration.load_checkpoint(folder_name=args.checkpoints)
+        checkpoint, start_gen = load_checkpoint(folder_name=checkpoint_path)
         
         if checkpoint:
             GLOBAL_DATA = checkpoint["GLOBAL_DATA"]
@@ -116,14 +117,14 @@ def unpackIslands(num_islands, checkpoints) -> list[islands.Island]:
         
         individuals = []
         for ind in population:
-            individual = islands.Individual(ind[0], ind.fitness.values)
+            individual = Individual(ind[0], ind.fitness.values)
             individuals.append(individual)
         
-        island = islands.Island(checkpoint_path, individuals)
+        island = Island(checkpoint_path, individuals)
         islands.append(island)
     return islands
 
-def packIslands(islands: list[islands.Island]):
+def packIslands(islands: list[Island]):
     # Define the problem
     creator.create("FitnessMulti", base.Fitness, weights=FITNESS_WEIGHTS)  # Adjust weights as needed
     creator.create("Individual", list, fitness=creator.FitnessMulti, file_id=None)
@@ -148,7 +149,7 @@ def packIslands(islands: list[islands.Island]):
         print("Generating Island " + curr_llm, flush=True)
         checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
 
-        checkpoint, start_gen = islandIntegration.load_checkpoint(folder_name=args.checkpoints)
+        checkpoint, start_gen = load_checkpoint(folder_name=checkpoint_path)
 
         if checkpoint:
             GLOBAL_DATA = checkpoint["GLOBAL_DATA"]
@@ -162,13 +163,65 @@ def packIslands(islands: list[islands.Island]):
         
         individuals = []
         for ind in population:
-            individual = islands.Individual(ind[0], ind.fitness.values)
+            individual = Individual(ind[0], ind.fitness.values)
             individuals.append(individual)
         
-        island = islands.Island(checkpoint_path, individuals)
+        island = Island(checkpoint_path, individuals)
         islands.append(island)
     
     return islands
+
+
+import collections
+def print_swaps(before1, before2, after1, after2):
+    """
+    Given two arrays before the swap (before1, before2) and two arrays after the swap (after1, after2),
+    prints which entries were swapped from Array 1 to Array 2 and vice versa,
+    and displays the total count of swapped entries.
+    
+    The function compares the counts of each element in the "before" arrays with the "after" arrays.
+    """
+    # Count occurrences in each list
+    counter1_before = collections.Counter(before1)
+    counter1_after = collections.Counter(after1)
+    counter2_before = collections.Counter(before2)
+    counter2_after = collections.Counter(after2)
+
+    # Determine items that left Array 1 (i.e. swapped from Array 1 to Array 2)
+    swapped_1_to_2 = {}
+    for item, count in counter1_before.items():
+        # If the item appears less in after1, it means some copies moved out.
+        diff = count - counter1_after.get(item, 0)
+        if diff > 0:
+            swapped_1_to_2[item] = diff
+
+    # Determine items that left Array 2 (i.e. swapped from Array 2 to Array 1)
+    swapped_2_to_1 = {}
+    for item, count in counter2_before.items():
+        diff = count - counter2_after.get(item, 0)
+        if diff > 0:
+            swapped_2_to_1[item] = diff
+
+    # Calculate total number of swapped entries.
+    total_swapped = sum(swapped_1_to_2.values()) + sum(swapped_2_to_1.values())
+
+    # Print out the results
+    print("Entries swapped from Array 1 to Array 2:")
+    if swapped_1_to_2:
+        for item, count in swapped_1_to_2.items():
+            print(f"  {item}: {count}")
+    else:
+        print("  None")
+
+    print("\nEntries swapped from Array 2 to Array 1:")
+    if swapped_2_to_1:
+        for item, count in swapped_2_to_1.items():
+            print(f"  {item}: {count}")
+    else:
+        print("  None")
+
+    print(f"\nTotal number of swapped entries: {total_swapped}")
+
 
 
 def migrateIslands(topology, num_islands, checkpoints):
@@ -177,8 +230,43 @@ def migrateIslands(topology, num_islands, checkpoints):
     # Save them back to checkpoints
 
     islands = unpackIslands(num_islands, checkpoints)
-    new_islands = islands.migrate(topology, islands)
-    packIslands(new_islands)
+
+    print()
+    
+    array1_before = []
+    island1 = islands[0]
+    for individual in island1.individuals:
+        array1_before.append(individual.name)
+
+    array2_before = []
+    island2 = islands[1]
+    for individual in island2.individuals:
+        array1_before.append(individual.name)
+        
+
+    new_islands = migrate(topology, islands)
+    print(" ------ after migration ------ ")
+
+
+    array1_after = []
+    island1 = islands[0]
+    for individual in island1.individuals:
+        array1_after.append(individual.name)
+
+    array2_after = []
+    island2 = islands[1]
+    for individual in island2.individuals:
+        array1_after.append(individual.name)
+
+    print("before ---------------------")
+    print(array1_before)
+    print("after ----------------------")
+    print(array1_after)
+
+    print_swaps(array1_before, array2_before, array1_after, array2_after)
+
+
+    #packIslands(new_islands)
 
 
 
@@ -233,9 +321,29 @@ if __name__ == "__main__":
     for i in range(num_islands):
         curr_llm = ISLAND_LLMS[i]
         checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
-        island = islands.Island(checkpoint_path, [])
+        island = Island(checkpoint_path, [])
         islands_list.append(island) 
-    topology = islands.generate_graph_topology(islands_list, islands.Topology.FULL)
+    topology = generate_graph_topology(islands_list, Topology.FULL)
+
+
+
+
+    '''
+        jack's migration test
+    '''
+
+    box_print("Start of Test")
+    print("checkpoints: ", checkpoints)
+    print("num islands: ", num_islands)
+    print("topology: ", topology)
+
+    print("Starting island migration", flush=True)
+    migrateIslands(topology, num_islands, checkpoints)
+
+
+    box_print("End of Test")
+    exit(0)
+
 
     # start generation
     for gen in range(num_generations):
