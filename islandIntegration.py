@@ -864,14 +864,16 @@ if __name__ == "__main__":
 
     box_print("CURRENT POPULATION SIZE:", len(population))
     while len(population) < num_elites:
-        print("MINIMUM NUMBER OF IND NOT ACHIEVED, CREATING MORE")
+        print("MINIMUM NUMBER OF IND NOT ACHIEVED, TRYING AGAIN")
         GEN_COUNT = -1
         TOP_N_GENES = None
         LINKED_GENES = {}
         GLOBAL_DATA = {}
         GLOBAL_DATA_HIST = {}
         GLOBAL_DATA_ANCESTERY = {}
+        start_gen = 0
         population = toolbox.population(n=start_population_size, llm_model=llm_model)
+        delayed_creation_check(population)
         for ind in population:
             ind.fitness.values = PLACEHOLDER_FITNESS
         check_and_update_fitness(population)

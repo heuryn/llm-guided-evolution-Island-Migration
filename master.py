@@ -219,11 +219,9 @@ def migrateIslands(topology, num_islands, checkpoints, gen):
     for individual in island2.individuals:
         array2_before.append(individual.name)
     
-
+    print("MIGRATING INDIVIDUALS")
     migrate(topology, islands)
 
-
-    print(" ------ after migration ------ ")
     array1_after = []
     island1 = islands[0]
     for individual in island1.individuals:
@@ -232,7 +230,10 @@ def migrateIslands(topology, num_islands, checkpoints, gen):
     island2 = islands[1]
     for individual in island2.individuals:
         array2_after.append(individual.name)
-    #print_swaps(array1_before, array2_before, array1_after, array2_after)
+    
+    print(" ----------- print_swaps output ----------- ")
+    print()
+    print_swaps(array1_before, array2_before, array1_after, array2_after)
 
     print("PACKING ISLANDS")
     print()
