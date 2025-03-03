@@ -125,29 +125,26 @@ def unpackIslands(num_islands, checkpoints) -> list[Island]:
         islands.append(island)
     return islands
 
-def packIslands(islands: list[Island]):
-    # Define the problem
-    creator.create("FitnessMulti", base.Fitness, weights=FITNESS_WEIGHTS)  # Adjust weights as needed
+def packIslands(islands: list[Island], gen: int):
     creator.create("Individual", list, fitness=creator.FitnessMulti, file_id=None)
-
-    # Initialize the toolbox
-    toolbox = base.Toolbox()
-    toolbox.register("individual", create_individual, creator.Individual)
-    toolbox.register("population", create_population)
-    toolbox.register("evaluate", evalModel)
-    toolbox.register("mate", customCrossover)
-    toolbox.register("mutate", customMutation, indpb=0.2)
-    toolbox.register("select", true_nsga2)
-
     for island in islands:
-        curr_llm = ISLAND_LLMS[i]
-        print("Packing island " + curr_llm, flush=True)
-        checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
+        island_path = island.path
+        print("Packing island path" + island_path, flush=True)
         population = []
-        for i in range(len(island)):
-            
-
-        save_checkpoint(population, gen, checkpoint_path)
+        for individual in island.individuals:
+            ind = creator.Individual([individual.name])
+            ind.fitness.values = individual.rank
+            population.append(ind)
+        
+        hof = tools.HallOfFame(hof_size)
+        checkpoint_data = {
+            "GLOBAL_DATA": {},
+            "GLOBAL_DATA_HIST": {},
+            "population": population,
+            "hof": hof,
+            "GLOBAL_DATA_ANCESTERY": {},
+        }
+        save_checkpoint(gen, island_path, checkpoint_data)
 
         
 
@@ -203,16 +200,16 @@ def print_swaps(before1, before2, after1, after2):
 
 
 
-def migrateIslands(topology, num_islands, checkpoints):
+def migrateIslands(topology, num_islands, checkpoints, gen):
     # Load checkpoint data for every island
     # add some individuals to other islands
     # Save them back to checkpoints
 
     # array of class Island 
+    print("UNPACKING ISLANDS")
     islands = unpackIslands(num_islands, checkpoints)
 
     print()
-    
     array1_before = []
     island1 = islands[0]
     for individual in island1.individuals:
@@ -225,8 +222,8 @@ def migrateIslands(topology, num_islands, checkpoints):
 
     migrate(topology, islands)
 
-    print(" ------ after migration ------ ")
 
+    print(" ------ after migration ------ ")
     array1_after = []
     island1 = islands[0]
     for individual in island1.individuals:
@@ -235,16 +232,11 @@ def migrateIslands(topology, num_islands, checkpoints):
     island2 = islands[1]
     for individual in island2.individuals:
         array2_after.append(individual.name)
+    #print_swaps(array1_before, array2_before, array1_after, array2_after)
 
-    print("before ---------------------")
-    print(array1_before)
-    print("after ----------------------")
-    print(array1_after)
-
-    print_swaps(array1_before, array2_before, array1_after, array2_after)
-
-
-    packIslands(islands)
+    print("PACKING ISLANDS")
+    print()
+    packIslands(islands, gen)
 
 
 
@@ -304,11 +296,9 @@ if __name__ == "__main__":
     topology = generate_graph_topology(islands_list, Topology.FULL)
 
 
-
-
     '''
         jack's migration test
-    '''
+    
 
     box_print("Start of Test")
     print("checkpoints: ", checkpoints)
@@ -316,12 +306,13 @@ if __name__ == "__main__":
     print("topology: ", topology)
 
     print("Starting island migration", flush=True)
-    migrateIslands(topology, num_islands, checkpoints)
+    migrateIslands(topology, num_islands, checkpoints, 0)
 
 
     box_print("End of Test")
     exit(0)
 
+    '''
 
     # start generation
     for gen in range(num_generations):
@@ -366,6 +357,6 @@ if __name__ == "__main__":
         # migrate individuals between islands
         if gen % 1 == 0:
             print("Starting island migration on generation " + str(gen), flush=True)
-            migrateIslands(topology, num_islands, checkpoints)
+            migrateIslands(topology, num_islands, checkpoints, gen)
     
     print("Finished evolutionary loop")

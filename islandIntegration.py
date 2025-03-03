@@ -736,15 +736,16 @@ def remove_duplicates(population):
 
 
 # --- Checkpoint Functions --- #
-def save_checkpoint(population, gen, folder_name="checkpoints"):
+def save_checkpoint(gen, folder_name="checkpoints", checkpoint_data=None):
     os.makedirs(folder_name, exist_ok=True)
-    checkpoint_data = {
-        "GLOBAL_DATA": GLOBAL_DATA,
-        "GLOBAL_DATA_HIST": GLOBAL_DATA_HIST,
-        "population": population,
-        "hof": hof,
-        "GLOBAL_DATA_ANCESTERY":GLOBAL_DATA_ANCESTERY,
-    }
+    if checkpoint_data is None:
+        checkpoint_data = {
+            "GLOBAL_DATA": GLOBAL_DATA,
+            "GLOBAL_DATA_HIST": GLOBAL_DATA_HIST,
+            "population": population,
+            "hof": hof,
+            "GLOBAL_DATA_ANCESTERY":GLOBAL_DATA_ANCESTERY,
+        }
     filename = os.path.join(folder_name, f'checkpoint_gen_{gen}.pkl')
     with open(filename, 'wb') as file:
         pickle.dump(checkpoint_data, file)
@@ -962,7 +963,7 @@ if __name__ == "__main__":
     # Gather all the fitnesses in one list and print the stats
     print_scores(population, FITNESS_WEIGHTS)
     hof.update(population)
-    save_checkpoint(population, gen, folder_name=args.checkpoints)
+    save_checkpoint(gen, folder_name=args.checkpoints)
     LINKED_GENES = {}
     
         
