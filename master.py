@@ -4,6 +4,7 @@ from deap import base, creator, tools
 from deap.tools import HallOfFame
 import subprocess
 import time
+import networkx as nx
 from islandIntegration import load_checkpoint, save_checkpoint
 from islands import Individual, Island, Topology, migrate, generate_graph_topology
 from src.cfg.constants import *
@@ -139,38 +140,16 @@ def packIslands(islands: list[Island]):
     toolbox.register("select", true_nsga2)
 
     for island in islands:
-        island.path
-
-        population = toolbox.population()
-
-
-
         curr_llm = ISLAND_LLMS[i]
-        print("Generating Island " + curr_llm, flush=True)
+        print("Packing island " + curr_llm, flush=True)
         checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
+        population = []
+        for i in range(len(island)):
+            
 
-        checkpoint, start_gen = load_checkpoint(folder_name=checkpoint_path)
+        save_checkpoint(population, gen, checkpoint_path)
 
-        if checkpoint:
-            GLOBAL_DATA = checkpoint["GLOBAL_DATA"]
-            GLOBAL_DATA_HIST = checkpoint["GLOBAL_DATA_HIST"]
-            GLOBAL_DATA_ANCESTERY = checkpoint["GLOBAL_DATA_ANCESTERY"]
-            population = checkpoint["population"]
-            hof = checkpoint["hof"]
-        else:
-            print("Missing Island ", checkpoint_path)
-            exit(0)
         
-        individuals = []
-        for ind in population:
-            individual = Individual(ind[0], ind.fitness.values)
-            individuals.append(individual)
-        
-        island = Island(checkpoint_path, individuals)
-        islands.append(island)
-    
-    return islands
-
 
 import collections
 def print_swaps(before1, before2, after1, after2):
@@ -229,6 +208,7 @@ def migrateIslands(topology, num_islands, checkpoints):
     # add some individuals to other islands
     # Save them back to checkpoints
 
+    # array of class Island 
     islands = unpackIslands(num_islands, checkpoints)
 
     print()
@@ -237,26 +217,24 @@ def migrateIslands(topology, num_islands, checkpoints):
     island1 = islands[0]
     for individual in island1.individuals:
         array1_before.append(individual.name)
-
     array2_before = []
     island2 = islands[1]
     for individual in island2.individuals:
-        array1_before.append(individual.name)
-        
+        array2_before.append(individual.name)
+    
 
-    new_islands = migrate(topology, islands)
+    migrate(topology, islands)
+
     print(" ------ after migration ------ ")
-
 
     array1_after = []
     island1 = islands[0]
     for individual in island1.individuals:
         array1_after.append(individual.name)
-
     array2_after = []
     island2 = islands[1]
     for individual in island2.individuals:
-        array1_after.append(individual.name)
+        array2_after.append(individual.name)
 
     print("before ---------------------")
     print(array1_before)
@@ -266,7 +244,7 @@ def migrateIslands(topology, num_islands, checkpoints):
     print_swaps(array1_before, array2_before, array1_after, array2_after)
 
 
-    #packIslands(new_islands)
+    packIslands(islands)
 
 
 
