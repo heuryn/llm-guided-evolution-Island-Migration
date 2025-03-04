@@ -100,6 +100,7 @@ Main Job Functions
 """  
 def write_bash_script(
                       llm_model,
+                      job_name,
                       input_filename_x=f'{SOTA_ROOT}/network.py',
                       input_filename_y=None,
                       output_filename=f'{SOTA_ROOT}/models/network_x.py',
@@ -107,7 +108,7 @@ def write_bash_script(
                       top_p=0.1, temperature=0.2,
                      ):
     
-    print("WHITING write_bash_script, llm_model: ", llm_model)
+    print("WRITING write_bash_script, llm_model: ", llm_model)
     
     def fetch_gene(filepath):
         return os.path.basename(filepath).replace('network_','').replace('.py','')
@@ -120,6 +121,7 @@ def write_bash_script(
     dir_path = os.path.dirname(output_filename)
     # Create the directory, ignore error if it already exists
     os.makedirs(dir_path, exist_ok=True)
+    
     
     gene_id_parent = fetch_gene(input_filename_x)
     gene_id_child = fetch_gene(output_filename)
@@ -149,7 +151,7 @@ def write_bash_script(
     else:
         raise ValueError("Invalid python_file argument")
 
-    bash_script_content = LLM_BASH_SCRIPT_TEMPLATE.format(LLM_GPU, CONDA_ENV, python_runline)
+    bash_script_content = LLM_BASH_SCRIPT_TEMPLATE.format(job_name, LLM_GPU, CONDA_ENV, python_runline)
     return bash_script_content
 
 def create_bash_file(file_path, **kwargs):
@@ -277,6 +279,7 @@ def create_individual(container, llm_model, temp_min=0.05, temp_max=0.4):
                                               output_filename =f'{SOTA_ROOT}/models/network_{gene_id}.py',
                                               python_file='src/llm_mutation.py', 
                                               llm_model=llm_model,
+                                              job_name="create_individual",
                                               top_p=0.1, temperature=temperature)
     # Log data
     GLOBAL_DATA[gene_id] = {'sub_flag':successful_sub_flag, 'job_id':job_id, 
@@ -618,7 +621,8 @@ def customCrossover(ind1, ind2, llm_model):
                                           input_filename_x=f'{SOTA_ROOT}/models/network_{gene_id_1}.py',
                                           input_filename_y=f'{SOTA_ROOT}/models/network_{gene_id_2}.py',
                                           output_filename=f'{SOTA_ROOT}/models/network_{new_gene_id}.py',
-                                          python_file='src/llm_crossover.py', 
+                                          python_file='src/llm_crossover.py',
+                                          job_name="crossover_operation", 
                                           top_p=0.1, llm_model=llm_model, temperature=temperature)
 
         # Update global data for the new individual
@@ -691,6 +695,7 @@ def customMutation(individual, llm_model, indpb, temp_min=0.1, temp_max=0.6):
                                               input_filename_x= f'{SOTA_ROOT}/models/network_{old_gene_id}.py',
                                               output_filename = f'{SOTA_ROOT}/models/network_{new_gene_id}.py',
                                               python_file='src/llm_mutation.py', 
+                                              job_name="mutation_opertion",
                                               top_p=0.1, llm_model=llm_model, temperature=temperature)
     
     # Update the individual with the new gene ID
@@ -736,23 +741,50 @@ def remove_duplicates(population):
 
 
 # --- Checkpoint Functions --- #
-def save_checkpoint(gen, folder_name="checkpoints", checkpoint_data=None):
+def save_checkpoint(gen, folder_name="checkpoints", global_path=None, checkpoint_data=None):
     os.makedirs(folder_name, exist_ok=True)
+    os.makedirs(global_path, exist_ok=True)
+
+    if global_path is not None:
+        global_file = os.path.join(global_path, f'global_gen_{gen}.plk')
+        if os.path.exists(global_file):
+            with open(global_file, "rb") as file:
+                try:
+                    stored_global_data = pickle.load(file)
+                except EOFError:
+                    stored_global_data = {}  
+        else:
+            stored_global_data = {}
+
+        if stored_global_data:
+            global_data = {
+                stored_global_data["GLOBAL_DATA"].update(GLOBAL_DATA),
+                stored_global_data["GLOBAL_DATA_HIST"].update(GLOBAL_DATA_HIST),
+                stored_global_data["GLOBAL_DATA_ANCESTERY"].update(GLOBAL_DATA_ANCESTERY),
+            }
+        else:
+            global_data = {
+                GLOBAL_DATA,
+                GLOBAL_DATA_HIST,
+                GLOBAL_DATA,
+            }
+
+        with open(global_file, 'wb') as file:
+            pickle.dump(global_data)
+        print(f'Global data saved as {global_file}')
+
     if checkpoint_data is None:
         checkpoint_data = {
-            "GLOBAL_DATA": GLOBAL_DATA,
-            "GLOBAL_DATA_HIST": GLOBAL_DATA_HIST,
             "population": population,
-            "hof": hof,
-            "GLOBAL_DATA_ANCESTERY":GLOBAL_DATA_ANCESTERY,
+            "hof": hof, 
         }
     filename = os.path.join(folder_name, f'checkpoint_gen_{gen}.pkl')
     with open(filename, 'wb') as file:
         pickle.dump(checkpoint_data, file)
-    print(f"Checkpoint saved as {filename}")
+    print(f"Population data saved as {filename}")
 
     
-def load_checkpoint(folder_name="checkpoints", checkpoint_file=None):
+def load_checkpoint(folder_name="checkpoints", checkpoint_file=None, global_path="checkpoints", global_file=None):
     if not os.path.exists(folder_name):
         return None, None
     if checkpoint_file is None:
@@ -761,12 +793,21 @@ def load_checkpoint(folder_name="checkpoints", checkpoint_file=None):
     if checkpoint_file:
         filepath = os.path.join(folder_name, checkpoint_file)
         with open(filepath, 'rb') as file:
-            checkpoint_data = pickle.load(file)
-        print(f"Loaded checkpoint from {filepath}")
+            population_data = pickle.load(file)
+        print(f"Loaded population data from {filepath}")
         start_gen = int(checkpoint_file.split('_')[2].split('.')[0])
         start_gen = start_gen + 1
-        return checkpoint_data, start_gen
-    return None, None
+    
+    if global_file is None:
+        global_files = sorted(os.listdir(global_path), reverse=True)
+        global_file = global_files[0] if global_files else None
+    if global_file:
+        filepath = os.path.join(global_path, global_file)
+        with open(filepath, 'rb') as file:
+            global_data = pickle.load(file)
+        print(f"Loaded global data from {filepath}")
+
+    return population_data, start_gen, global_data
 
 
 def true_nsga2(pop, k):
@@ -804,6 +845,7 @@ if __name__ == "__main__":
     # Add arguments
     parser.add_argument('checkpoints', type=str, help='Save Dir')
     parser.add_argument('--llm_model', type=str, help='Which LLM to use', default=LLM_MIXTRAL)
+    parser.add_argument('--global_path', type=str, help='Path to global variables', default=ROOT_DIR)
     # Parse the arguments
     args = parser.parse_args()
     llm_model = args.llm_model
@@ -820,14 +862,14 @@ if __name__ == "__main__":
     # Load a checkpoint if available
     # this is crucial for carrying data across multiple generations
 
-    checkpoint, start_gen = load_checkpoint(folder_name=args.checkpoints)
-    if checkpoint:
+    population_data, start_gen, global_data = load_checkpoint(folder_name=args.checkpoints, global_path=args.global_path)
+    if population_data:
         box_print("LOADING CHECKPOINT")
-        GLOBAL_DATA = checkpoint["GLOBAL_DATA"]
-        GLOBAL_DATA_HIST = checkpoint["GLOBAL_DATA_HIST"]
-        GLOBAL_DATA_ANCESTERY = checkpoint["GLOBAL_DATA_ANCESTERY"]
-        population = checkpoint["population"]
-        hof = checkpoint["hof"]
+        GLOBAL_DATA = global_data["GLOBAL_DATA"]
+        GLOBAL_DATA_HIST = global_data["GLOBAL_DATA_HIST"]
+        GLOBAL_DATA_ANCESTERY = global_data["GLOBAL_DATA_ANCESTERY"]
+        population = population_data["population"]
+        hof = population_data["hof"]
     else:
         # Create an initial population
         start_gen = 0
@@ -965,7 +1007,7 @@ if __name__ == "__main__":
     # Gather all the fitnesses in one list and print the stats
     print_scores(population, FITNESS_WEIGHTS)
     hof.update(population)
-    save_checkpoint(gen, folder_name=args.checkpoints)
+    save_checkpoint(gen, folder_name=args.checkpoints, global_path=args.global_path)
     LINKED_GENES = {}
     
         

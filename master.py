@@ -100,16 +100,15 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
 
 def unpackIslands(num_islands, checkpoints) -> list[Island]:
     islands = []
+    global_path = os.path.join(checkpoints, "global_data")
     for i in range(num_islands):
         curr_llm = ISLAND_LLMS[i]
         print("Unpacking island " + curr_llm, flush=True)
         checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
-        checkpoint, start_gen = load_checkpoint(folder_name=checkpoint_path)
+        global_path = os.path.join()
+        checkpoint, start_gen, global_data = load_checkpoint(folder_name=checkpoint_path, global_path=global_path)
         
         if checkpoint:
-            GLOBAL_DATA = checkpoint["GLOBAL_DATA"]
-            GLOBAL_DATA_HIST = checkpoint["GLOBAL_DATA_HIST"]
-            GLOBAL_DATA_ANCESTERY = checkpoint["GLOBAL_DATA_ANCESTERY"]
             population = checkpoint["population"]
             hof = checkpoint["hof"]
         else:
@@ -138,11 +137,8 @@ def packIslands(islands: list[Island], gen: int):
         
         hof = tools.HallOfFame(hof_size)
         checkpoint_data = {
-            "GLOBAL_DATA": {},
-            "GLOBAL_DATA_HIST": {},
             "population": population,
             "hof": hof,
-            "GLOBAL_DATA_ANCESTERY": {},
         }
         save_checkpoint(gen, island_path, checkpoint_data)
 
@@ -296,25 +292,7 @@ if __name__ == "__main__":
         islands_list.append(island) 
     topology = generate_graph_topology(islands_list, Topology.FULL)
 
-
-    '''
-        jack's migration test
-    
-
-    box_print("Start of Test")
-    print("checkpoints: ", checkpoints)
-    print("num islands: ", num_islands)
-    print("topology: ", topology)
-
-    print("Starting island migration", flush=True)
-    migrateIslands(topology, num_islands, checkpoints, 0)
-
-
-    box_print("End of Test")
-    exit(0)
-
-    '''
-
+    global_path = os.path.join(checkpoints, "global_data")
     # start generation
     for gen in range(num_generations):
         print("Starting generation " + str(gen), flush=True)
@@ -326,7 +304,7 @@ if __name__ == "__main__":
             print("Generating Island " + curr_llm, flush=True)
             checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
             
-            job_id = submit_run(island_script, PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS.format(curr_llm, CONDA_ENV, checkpoint_path, curr_llm))
+            job_id = submit_run(island_script, PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS.format(curr_llm, CONDA_ENV, checkpoint_path, global_path, curr_llm))
             job_ids.append(job_id)
         
         # check island generation jobs for completion
@@ -340,7 +318,6 @@ if __name__ == "__main__":
             print("Error occured in loop, job not done")
             break
 
-        '''
         # mutate prompts
         print("Mutating Prompts")
         prompt_job_ids = submit_mutate_prompts(LLM_MIXTRAL)
@@ -353,7 +330,7 @@ if __name__ == "__main__":
         if not done:
             print("Error occured in loop, job not done")
             break
-        '''
+        
 
         # migrate individuals between islands
         if gen % 1 == 0:

@@ -36,6 +36,8 @@ LLM_DEEPSEEK = 'deepseek'
 ISLAND_LLMS = [LLM_MIXTRAL, LLM_GEMMA2, LLM_QWEN, LLM_DEEPSEEK, LLM_LLAMA3]
 MAX_ISLANDS = len(ISLAND_LLMS)
 
+GLOBAL_DATA = {}
+
 # SEED_PACKAGE_DIR = "./sota/ExquisiteNetV2/divine_seed_module"
 
 """
@@ -48,7 +50,7 @@ PLACEHOLDER_FITNESS = tuple([int(x*9999999999*-1) for x in FITNESS_WEIGHTS])
 
 NUM_EOT_ELITES = 2
 GENERATION = 0
-PROB_QC = 0.0
+PROB_QC = 1.0
 PROB_EOT = 0.25
 num_generations = 2  # Number of generations
 start_population_size = 32
@@ -73,11 +75,12 @@ LLM_GPU = 'H100'
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=evaluateGene
 #SBATCH --time=01:00:00
+#SBATCH -N1 --ntasks-per-node=32
+
 
 #SBATCH -G 1
 #SBATCH -C "{}"
 #SBATCH --mem-per-gpu 32G
-#SBATCH -c 12
 
 
 echo "Launching AIsurBL"
@@ -102,14 +105,14 @@ export MKL_THREADING_LAYER=GNU
 """
 
 LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
-#SBATCH --job-name=llm_oper
+#SBATCH --job-name={}
 #SBATCH --time=00:30:00
-
+#SBATCH -N1 --ntasks-per-node=32
 
 #SBATCH -G 2 
 #SBATCH -C "{}"
 #SBATCH --mem-per-gpu 80G
-#SBATCH -c 32
+
 
 echo "Launching AIsurBL"
 hostname
@@ -151,7 +154,7 @@ conda info
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
 # Run Python script
-python islandIntegration.py {} --llm_model {}
+python islandIntegration.py {} --global_path {} --llm_model {}
 """
 
 

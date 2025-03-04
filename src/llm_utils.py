@@ -78,7 +78,7 @@ def generate_augmented_code(txt2llm, augment_idx, apply_quality_control, top_p, 
         base_code = retrieve_base_code(augment_idx)
         code_from_llm, generate_text = llm_code_generator(txt2llm, return_gen=True, top_p=top_p, temperature=temperature)
         temp, counter = None, 0 #default to run the quality control
-        while counter < 5 and (not temp or temp != "NC" or temp != "OOT" or temp != "MS"): #counter to deal with stubborn 
+        while counter < 5 and (temp not in ["NC", "OOT", "MS", "ERROR"]): #counter to deal with stubborn 
             if temp == "NC": #regenerate based on error
                 prefix = "The code you generated did not contain a code output of the changes you mentioned. Make sure to include the altered code in your output.\n"
                 code_from_llm, generate_text = llm_code_generator(prefix + txt2llm, return_gen=True, top_p=top_p, temperature=temperature)
@@ -92,6 +92,7 @@ def generate_augmented_code(txt2llm, augment_idx, apply_quality_control, top_p, 
                 code_from_llm, generate_text = llm_code_generator(txt2llm, return_gen=True, top_p=top_p, temperature=temperature) #just retry
             
             temp = qc_func(code_from_llm, base_code, generate_text)
+            counter += 1
         
         if temp != "NC" or temp != "OOT" or temp != "MS":
             return base_code
