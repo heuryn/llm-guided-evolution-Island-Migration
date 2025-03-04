@@ -2,8 +2,8 @@ import os
 import numpy as np
 
 
-ROOT_DIR = "/home/hice1/jwarren315/scratch/llm-island-migration/"
-CONDA_ENV = "llmIslandsEnv"
+ROOT_DIR = "/home/hice1/aganesan44/scratch/llm-island-migration/"
+CONDA_ENV = "llmIntegration"
 HF_TOKEN = "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"
 GLOBAL_DATA_PATH = "global_data"
 

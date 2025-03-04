@@ -3,6 +3,7 @@ import argparse
 import glob
 from deap import base, creator, tools
 from deap.tools import HallOfFame
+from src.utils.print_utils import print_swaps
 import subprocess
 import time
 import networkx as nx
@@ -142,60 +143,6 @@ def packIslands(islands: list[Island], gen: int):
             "hof": hof,
         }
         save_checkpoint(gen=gen, folder_name=island_path, global_path=None, checkpoint_data=checkpoint_data)
-
-        
-
-import collections
-def print_swaps(before1, before2, after1, after2):
-    """
-    Given two arrays before the swap (before1, before2) and two arrays after the swap (after1, after2),
-    prints which entries were swapped from Array 1 to Array 2 and vice versa,
-    and displays the total count of swapped entries.
-    
-    The function compares the counts of each element in the "before" arrays with the "after" arrays.
-    """
-    # Count occurrences in each list
-    counter1_before = collections.Counter(before1)
-    counter1_after = collections.Counter(after1)
-    counter2_before = collections.Counter(before2)
-    counter2_after = collections.Counter(after2)
-
-    # Determine items that left Array 1 (i.e. swapped from Array 1 to Array 2)
-    swapped_1_to_2 = {}
-    for item, count in counter1_before.items():
-        # If the item appears less in after1, it means some copies moved out.
-        diff = count - counter1_after.get(item, 0)
-        if diff > 0:
-            swapped_1_to_2[item] = diff
-
-    # Determine items that left Array 2 (i.e. swapped from Array 2 to Array 1)
-    swapped_2_to_1 = {}
-    for item, count in counter2_before.items():
-        diff = count - counter2_after.get(item, 0)
-        if diff > 0:
-            swapped_2_to_1[item] = diff
-
-    # Calculate total number of swapped entries.
-    total_swapped = sum(swapped_1_to_2.values()) + sum(swapped_2_to_1.values())
-
-    # Print out the results
-    print("Entries swapped from Array 1 to Array 2:")
-    if swapped_1_to_2:
-        for item, count in swapped_1_to_2.items():
-            print(f"  {item}: {count}")
-    else:
-        print("  None")
-
-    print("\nEntries swapped from Array 2 to Array 1:")
-    if swapped_2_to_1:
-        for item, count in swapped_2_to_1.items():
-            print(f"  {item}: {count}")
-    else:
-        print("  None")
-
-    print(f"\nTotal number of swapped entries: {total_swapped}")
-
-
 
 def migrateIslands(topology, num_islands, checkpoints, gen):
     # Load checkpoint data for every island
