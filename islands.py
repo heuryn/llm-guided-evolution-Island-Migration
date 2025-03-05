@@ -35,8 +35,14 @@ class Island:
         self.path = path
         self.individuals = individuals
         heapq.heapify(self.individuals)
+    
+    def remove_best(self) -> Individual:
+        return heapq.heappop(self.individuals)
+    
+    def add_individual(self, individual) -> None:
+        heapq.heappush(self.individuals, individual)
 
-def generate_graph_topology(islands, topology, n=1, w=1):
+def generate_graph_topology(islands, topology, n=1, w=1) -> nx.Graph:
     """
     Generates a graph of islands based on the specified topology.
 
@@ -131,8 +137,7 @@ def generate_graph_topology(islands, topology, n=1, w=1):
 
     return G
 
-#TODO refactor this so the islands input is a list, not a map 
-def migrate(topology: nx.Graph, islands: dict[str, Island]):
+def migrate(topology: nx.Graph, islands_list: list[Island]) -> None:
     """
     Migrates the most fit individuals across islands based on the specified topology.
 
@@ -155,3 +160,4 @@ def migrate(topology: nx.Graph, islands: dict[str, Island]):
         for j in migration[i]:
             #move_file(j[0].name, j[1].path, i.path)
             islands[i].add_individual(j[0])
+
