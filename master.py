@@ -153,6 +153,7 @@ def migrateIslands(topology, num_islands, checkpoints, gen):
     print("UNPACKING ISLANDS")
     islands = unpackIslands(num_islands, checkpoints)
 
+    '''
     print()
     array1_before = []
     island1 = islands[0]
@@ -162,10 +163,12 @@ def migrateIslands(topology, num_islands, checkpoints, gen):
     island2 = islands[1]
     for individual in island2.individuals:
         array2_before.append(individual.name)
+    '''
     
     print("MIGRATING INDIVIDUALS")
     migrate(topology, islands)
 
+    '''
     array1_after = []
     island1 = islands[0]
     for individual in island1.individuals:
@@ -178,6 +181,7 @@ def migrateIslands(topology, num_islands, checkpoints, gen):
     print(" ----------- print_swaps output ----------- ")
     print()
     print_swaps(array1_before, array2_before, array1_after, array2_after)
+    '''
 
     print("PACKING ISLANDS")
     print()
@@ -282,7 +286,7 @@ if __name__ == "__main__":
         '''
 
         # migrate individuals between islands
-        if gen % 1 == 0:
+        if gen % 1 == 0 and num_islands > 1:
             print("Starting island migration on generation " + str(gen), flush=True)
             migrateIslands(topology, num_islands, checkpoints, gen)
     

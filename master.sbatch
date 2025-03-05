@@ -2,7 +2,7 @@
 #SBATCH --job-name=IslandsController
 #SBATCH -N1 --ntasks-per-node=4
 #SBATCH --mem-per-gpu=16G
-#SBATCH --time=08:00:00
+#SBATCH --time=12:00:00
 #SBATCH -oReport-%j.out
 #SBATCH --gres=gpu:1
 #SBATCH -C intel
@@ -14,7 +14,7 @@ echo "Started on `/bin/hostname`"
 module load cuda/12
 module load anaconda3
 
-conda activate llmIntegration
+conda activate llmIslandsEnv
 conda info
 
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/

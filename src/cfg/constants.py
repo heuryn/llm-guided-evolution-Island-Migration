@@ -2,8 +2,8 @@ import os
 import numpy as np
 
 
-ROOT_DIR = "/home/hice1/aganesan44/scratch/llm-island-migration/"
-CONDA_ENV = "llmIntegration"
+ROOT_DIR = "/home/hice1/jwarren315/scratch/llm-island-migration/"
+CONDA_ENV = "llmIslandsEnv"
 HF_TOKEN = "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"
 GLOBAL_DATA_PATH = "global_data"
 
@@ -34,7 +34,7 @@ LLM_GEMMA2 = 'gemma2'
 LLM_DEEPSEEK = 'deepseek'
 
 
-ISLAND_LLMS = [LLM_MIXTRAL, LLM_GEMMA2, LLM_QWEN, LLM_DEEPSEEK, LLM_LLAMA3]
+ISLAND_LLMS = [LLM_QWEN, LLM_MIXTRAL, LLM_GEMMA2, LLM_DEEPSEEK, LLM_LLAMA3]
 MAX_ISLANDS = len(ISLAND_LLMS)
 
 GLOBAL_DATA = {}
@@ -107,7 +107,7 @@ export MKL_THREADING_LAYER=GNU
 
 LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name={}
-#SBATCH --time=00:10:00
+#SBATCH --time=00:20:00
 #SBATCH -N1 --ntasks-per-node=32
 
 #SBATCH -G 2 

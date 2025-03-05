@@ -356,7 +356,7 @@ def submit_run(gene_id):
     print(f'\t‣ Running py File for {gene_id}, {job_id}')
 
     
-def evalModel(individual):
+def eval_model(individual):
     gene_id = individual[0]
     # Initially, we don't have a fitness value
     return None
@@ -836,7 +836,7 @@ creator.create("Individual", list, fitness=creator.FitnessMulti, file_id=None)
 toolbox = base.Toolbox()
 toolbox.register("individual", create_individual, creator.Individual)
 toolbox.register("population", create_population)
-toolbox.register("evaluate", evalModel)
+toolbox.register("evaluate", eval_model)
 toolbox.register("mate", customCrossover)
 toolbox.register("mutate", customMutation, indpb=0.2)
 toolbox.register("select", true_nsga2)
