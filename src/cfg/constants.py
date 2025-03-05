@@ -5,6 +5,7 @@ import numpy as np
 ROOT_DIR = "/home/hice1/jwarren315/scratch/llm-island-migration/"
 CONDA_ENV = "llmIslandsEnv"
 HF_TOKEN = "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"
+GLOBAL_DATA_PATH = "global_data"
 
 # DATA_PATH absolute or relative to ExquisiteNetV2
 DATA_PATH = os.path.join(ROOT_DIR, 'cifar10')
@@ -50,7 +51,7 @@ PLACEHOLDER_FITNESS = tuple([int(x*9999999999*-1) for x in FITNESS_WEIGHTS])
 
 NUM_EOT_ELITES = 2
 GENERATION = 0
-PROB_QC = 1.0
+PROB_QC = 0.0
 PROB_EOT = 0.25
 num_generations = 2  # Number of generations
 start_population_size = 32
@@ -106,7 +107,7 @@ export MKL_THREADING_LAYER=GNU
 
 LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name={}
-#SBATCH --time=00:30:00
+#SBATCH --time=00:10:00
 #SBATCH -N1 --ntasks-per-node=32
 
 #SBATCH -G 2 

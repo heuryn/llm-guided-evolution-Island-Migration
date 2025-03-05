@@ -20,4 +20,4 @@ conda info
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
 # Run Python script
-python islandIntegration.py first_test/island_gemma2 --llm_model gemma2
+python islandIntegration.py first_test/island_gemma2 --global_path first_test/global_data --llm_model gemma2

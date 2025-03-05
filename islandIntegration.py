@@ -743,10 +743,10 @@ def remove_duplicates(population):
 # --- Checkpoint Functions --- #
 def save_checkpoint(gen, folder_name="checkpoints", global_path=None, checkpoint_data=None):
     os.makedirs(folder_name, exist_ok=True)
-    os.makedirs(global_path, exist_ok=True)
 
     if global_path is not None:
-        global_file = os.path.join(global_path, f'global_gen_{gen}.plk')
+        os.makedirs(global_path, exist_ok=True)
+        global_file = os.path.join(global_path, f'global_gen_{gen}.pkl')
         if os.path.exists(global_file):
             with open(global_file, "rb") as file:
                 try:
@@ -756,21 +756,27 @@ def save_checkpoint(gen, folder_name="checkpoints", global_path=None, checkpoint
         else:
             stored_global_data = {}
 
+
+        print("ASSIGNING STORED GLOBAL DATA")
+        print("GLOBAL_DATA:", GLOBAL_DATA)
+
         if stored_global_data:
-            global_data = {
-                stored_global_data["GLOBAL_DATA"].update(GLOBAL_DATA),
-                stored_global_data["GLOBAL_DATA_HIST"].update(GLOBAL_DATA_HIST),
-                stored_global_data["GLOBAL_DATA_ANCESTERY"].update(GLOBAL_DATA_ANCESTERY),
-            }
+            print("Global data found, updating to file")
+            #print("existing global_data:", stored_global_data["GLOBAL_DATA"])
+            stored_global_data["GLOBAL_DATA"].update(GLOBAL_DATA)
+            stored_global_data["GLOBAL_DATA_HIST"].update(GLOBAL_DATA_HIST)
+            stored_global_data["GLOBAL_DATA_ANCESTERY"].update(GLOBAL_DATA_ANCESTERY)
         else:
-            global_data = {
-                GLOBAL_DATA,
-                GLOBAL_DATA_HIST,
-                GLOBAL_DATA,
+            print("No global data found, saving to a new file")
+            #print("GLOBAL_DATA:", GLOBAL_DATA)
+            stored_global_data = {
+                "GLOBAL_DATA": GLOBAL_DATA,
+                "GLOBAL_DATA_HIST": GLOBAL_DATA_HIST,
+                "GLOBAL_DATA_ANCESTERY": GLOBAL_DATA_ANCESTERY
             }
 
         with open(global_file, 'wb') as file:
-            pickle.dump(global_data)
+            pickle.dump(stored_global_data, file)
         print(f'Global data saved as {global_file}')
 
     if checkpoint_data is None:
@@ -785,8 +791,12 @@ def save_checkpoint(gen, folder_name="checkpoints", global_path=None, checkpoint
 
     
 def load_checkpoint(folder_name="checkpoints", checkpoint_file=None, global_path="checkpoints", global_file=None):
-    if not os.path.exists(folder_name):
-        return None, None
+    if not os.path.exists(folder_name) or not os.path.exists(global_path):
+        print("Path does not exist, returning none for checkpoints")
+        return None, None, None
+    population_data = []
+    start_gen = 0
+    global_data = {}
     if checkpoint_file is None:
         checkpoint_files = sorted(os.listdir(folder_name), reverse=True)
         checkpoint_file = checkpoint_files[0] if checkpoint_files else None
@@ -864,7 +874,7 @@ if __name__ == "__main__":
 
     population_data, start_gen, global_data = load_checkpoint(folder_name=args.checkpoints, global_path=args.global_path)
     if population_data:
-        box_print("LOADING CHECKPOINT")
+        box_print("CHECKPOINT LOADED")
         GLOBAL_DATA = global_data["GLOBAL_DATA"]
         GLOBAL_DATA_HIST = global_data["GLOBAL_DATA_HIST"]
         GLOBAL_DATA_ANCESTERY = global_data["GLOBAL_DATA_ANCESTERY"]
@@ -969,8 +979,8 @@ if __name__ == "__main__":
             toolbox.mutate(individual=mutant, llm_model=llm_model)
             del mutant.fitness.values
             
-    box_print(f"GLOBAL_DATA_ANCESTERY", new_line_end=False)
-    print_ancestery(GLOBAL_DATA_ANCESTERY)
+    #box_print(f"GLOBAL_DATA_ANCESTERY", new_line_end=False)
+    #print_ancestery(GLOBAL_DATA_ANCESTERY)
             
     box_print("Batch Checking Mutated Genes", print_bbox_len=60, new_line_end=False)
     offspring = delayed_mutate_check(offspring)

@@ -1,5 +1,6 @@
 import os
 import argparse
+import glob
 from deap import base, creator, tools
 from deap.tools import HallOfFame
 import subprocess
@@ -105,7 +106,7 @@ def unpackIslands(num_islands, checkpoints) -> list[Island]:
         curr_llm = ISLAND_LLMS[i]
         print("Unpacking island " + curr_llm, flush=True)
         checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
-        global_path = os.path.join()
+        global_path = os.path.join(checkpoints, GLOBAL_DATA_PATH)
         checkpoint, start_gen, global_data = load_checkpoint(folder_name=checkpoint_path, global_path=global_path)
         
         if checkpoint:
@@ -140,7 +141,7 @@ def packIslands(islands: list[Island], gen: int):
             "population": population,
             "hof": hof,
         }
-        save_checkpoint(gen, island_path, checkpoint_data)
+        save_checkpoint(gen=gen, folder_name=island_path, global_path=None, checkpoint_data=checkpoint_data)
 
         
 
@@ -274,7 +275,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_islands', type=int, help='Number of Islands', default=2)
     # Parse the arguments
     args = parser.parse_args()
-    island_script= "src/island_temp_script.sh"
+    island_script = "src/island_temp_script.sh"
     checkpoints = args.checkpoints
     num_islands = args.num_islands
 
@@ -292,7 +293,7 @@ if __name__ == "__main__":
         islands_list.append(island) 
     topology = generate_graph_topology(islands_list, Topology.FULL)
 
-    global_path = os.path.join(checkpoints, "global_data")
+    global_path = os.path.join(checkpoints, GLOBAL_DATA_PATH)
     # start generation
     for gen in range(num_generations):
         print("Starting generation " + str(gen), flush=True)
@@ -318,6 +319,7 @@ if __name__ == "__main__":
             print("Error occured in loop, job not done")
             break
 
+        '''
         # mutate prompts
         print("Mutating Prompts")
         prompt_job_ids = submit_mutate_prompts(LLM_MIXTRAL)
@@ -330,7 +332,7 @@ if __name__ == "__main__":
         if not done:
             print("Error occured in loop, job not done")
             break
-        
+        '''
 
         # migrate individuals between islands
         if gen % 1 == 0:
