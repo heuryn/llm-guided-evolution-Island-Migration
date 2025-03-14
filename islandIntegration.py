@@ -483,13 +483,14 @@ def check_and_update_fitness(population, timeout=3600*30, loop_delay=60):
                         print(f"\t‣ Still Waiting On: Gene: {gene_id}", flush=True)
                         print_job_info(GLOBAL_DATA[gene_id])
                         all_done = False  # Some jobs are still running
-        if all_done:
+        if all_done or count >= 10:
             box_print("Evalutated All Genes", print_bbox_len=60)
             break  # All jobs are done or timed out
             
         print('Delayed...', flush=True)
         time.sleep(loop_delay)  # Wait some time before checking again
         count+=1
+        
         
 
 def update_individual(ind, new_gene_id, old_gene_id=None, process_success=True, process_type='Mutation'):
@@ -670,7 +671,7 @@ def customCrossover(ind1, ind2, llm_model):
     return offspring1, offspring2
 
 
-def customMutation(individual, llm_model, indpb, temp_min=0.1, temp_max=0.6):
+def customMutation(individual, llm_model, indpb, temp_min=0.2, temp_max=0.8):
     """ Custom mutation function that randomly changes the temperature parameter of the individual's task and assigns a new ID.
     Parameters:
     individual (list): The individual to be mutated.
@@ -758,17 +759,14 @@ def save_checkpoint(gen, folder_name="checkpoints", global_path=None, checkpoint
 
 
         print("ASSIGNING STORED GLOBAL DATA")
-        print("GLOBAL_DATA:", GLOBAL_DATA)
 
         if stored_global_data:
             print("Global data found, updating to file")
-            #print("existing global_data:", stored_global_data["GLOBAL_DATA"])
             stored_global_data["GLOBAL_DATA"].update(GLOBAL_DATA)
             stored_global_data["GLOBAL_DATA_HIST"].update(GLOBAL_DATA_HIST)
             stored_global_data["GLOBAL_DATA_ANCESTERY"].update(GLOBAL_DATA_ANCESTERY)
         else:
             print("No global data found, saving to a new file")
-            #print("GLOBAL_DATA:", GLOBAL_DATA)
             stored_global_data = {
                 "GLOBAL_DATA": GLOBAL_DATA,
                 "GLOBAL_DATA_HIST": GLOBAL_DATA_HIST,

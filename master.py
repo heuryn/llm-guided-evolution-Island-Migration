@@ -127,7 +127,6 @@ def unpackIslands(num_islands, checkpoints) -> list[Island]:
     return islands
 
 def packIslands(islands: list[Island], gen: int):
-    creator.create("Individual", list, fitness=creator.FitnessMulti, file_id=None)
     for island in islands:
         island_path = island.path
         print("Packing island path" + island_path, flush=True)
@@ -286,7 +285,7 @@ if __name__ == "__main__":
         '''
 
         # migrate individuals between islands
-        if gen % 1 == 0 and num_islands > 1:
+        if gen % migration_gen == 0 and num_islands > 1:
             print("Starting island migration on generation " + str(gen), flush=True)
             migrateIslands(topology, num_islands, checkpoints, gen)
     

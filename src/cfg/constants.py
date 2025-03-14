@@ -6,6 +6,7 @@ ROOT_DIR = "/home/hice1/jwarren315/scratch/llm-island-migration/"
 CONDA_ENV = "llmIslandsEnv"
 HF_TOKEN = "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"
 GLOBAL_DATA_PATH = "global_data"
+DONT_SCRAPE_ME = HF_TOKEN
 
 # DATA_PATH absolute or relative to ExquisiteNetV2
 DATA_PATH = os.path.join(ROOT_DIR, 'cifar10')
@@ -53,15 +54,15 @@ NUM_EOT_ELITES = 2
 GENERATION = 0
 PROB_QC = 0.0
 PROB_EOT = 0.25
-num_generations = 2  # Number of generations
+num_generations = 30  # Number of generations
+migration_gen = 3 # how many generations btwn migration
 start_population_size = 32
 # start_population_size = 144   # Size of the population 124=72
 #population_size = 44 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
-population_size = 16 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
+population_size = 12 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
 crossover_probability = 0.35  # Probability of mating two individuals
-mutation_probability = 0.8 # Probability of mutating an individual
-num_elites = 8  # number of ind that bypass mutation/mating
-num_offspring = 8
+mutation_probability = 0.6 # Probability of mutating an individual
+num_elites = 4  # number of ind that bypass mutation/mating
 hof_size = 100
 
 
@@ -75,7 +76,7 @@ HUGGING_FACE_BOOL = False
 LLM_GPU = 'H100'
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=evaluateGene
-#SBATCH --time=01:00:00
+#SBATCH --time=00:30:00
 #SBATCH -N1 --ntasks-per-node=32
 
 
@@ -137,7 +138,7 @@ PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS = """#!/bin/bash
 #SBATCH --job-name=LLM_Island_{}
 #SBATCH -N1 --ntasks-per-node=16
 #SBATCH --mem-per-gpu=16G
-#SBATCH --time=08:00:00
+#SBATCH --time=03:00:00
 #SBATCH -oReport_islands-%j.out
 #SBATCH --gres=gpu:1
 #SBATCH -C intel
