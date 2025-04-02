@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 
-ROOT_DIR = "/home/hice1/jwarren315/scratch/llm-island-migration/"
+ROOT_DIR = "/home/hice1/jdamato9/scratch/llm-island-migration/"
 CONDA_ENV = "llmIslandsEnv"
 HF_TOKEN = "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"
 GLOBAL_DATA_PATH = "global_data"
@@ -40,7 +40,6 @@ ISLAND_LLMS = [LLM_GEMMA3, LLM_QWEN, LLM_DEEPSEEK, LLM_LLAMA3]
 MAX_ISLANDS = len(ISLAND_LLMS)
 
 GLOBAL_DATA = {}
-
 # SEED_PACKAGE_DIR = "./sota/ExquisiteNetV2/divine_seed_module"
 
 """
