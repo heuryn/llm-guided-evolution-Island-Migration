@@ -1,7 +1,0 @@
-python
-def predict(self, x):
-    #... (code)
-
-```python
-{}
-```

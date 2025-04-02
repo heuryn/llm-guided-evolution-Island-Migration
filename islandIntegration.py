@@ -671,7 +671,7 @@ def customCrossover(ind1, ind2, llm_model):
     return offspring1, offspring2
 
 
-def customMutation(individual, llm_model, indpb, temp_min=0.2, temp_max=0.8):
+def customMutation(individual, llm_model, indpb, temp_min=0.1, temp_max=0.4):
     """ Custom mutation function that randomly changes the temperature parameter of the individual's task and assigns a new ID.
     Parameters:
     individual (list): The individual to be mutated.

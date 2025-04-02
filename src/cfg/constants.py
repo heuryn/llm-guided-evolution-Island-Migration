@@ -32,10 +32,11 @@ LLM_QWEN = 'qwen25'
 LLM_MIXTRAL = 'mixtral'
 LLM_LLAMA3 = 'llama3'
 LLM_GEMMA2 = 'gemma2'
+LLM_GEMMA3 = 'gemma3'
 LLM_DEEPSEEK = 'deepseek'
 
 
-ISLAND_LLMS = [LLM_GEMMA2, LLM_MIXTRAL, LLM_QWEN, LLM_DEEPSEEK, LLM_LLAMA3]
+ISLAND_LLMS = [LLM_GEMMA3, LLM_QWEN, LLM_DEEPSEEK, LLM_LLAMA3]
 MAX_ISLANDS = len(ISLAND_LLMS)
 
 GLOBAL_DATA = {}
@@ -53,16 +54,16 @@ PLACEHOLDER_FITNESS = tuple([int(x*9999999999*-1) for x in FITNESS_WEIGHTS])
 NUM_EOT_ELITES = 2
 GENERATION = 0
 PROB_QC = 0.0
-PROB_EOT = 0.25
-num_generations = 2  # Number of generations
+PROB_EOT = 0.05
+num_generations = 30  # Number of generations
 migration_gen = 3 # how many generations btwn migration
-start_population_size = 16
+start_population_size = 32
 # start_population_size = 144   # Size of the population 124=72
 #population_size = 44 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
-population_size = 8 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
+population_size = 12 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
 crossover_probability = 0.35  # Probability of mating two individuals
 mutation_probability = 0.6 # Probability of mutating an individual
-num_elites = 4  # number of ind that bypass mutation/mating
+num_elites = 8  # number of ind that bypass mutation/mating
 hof_size = 100
 
 

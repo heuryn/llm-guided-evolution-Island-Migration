@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=LLM_Island_gemma2
+#SBATCH --job-name=LLM_Island_qwen25
 #SBATCH -N1 --ntasks-per-node=16
 #SBATCH --mem-per-gpu=16G
-#SBATCH --time=08:00:00
+#SBATCH --time=03:00:00
 #SBATCH -oReport_islands-%j.out
 #SBATCH --gres=gpu:1
 #SBATCH -C intel
@@ -20,4 +20,4 @@ conda info
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
 # Run Python script
-python islandIntegration.py first_test/island_gemma2 --global_path first_test/global_data --llm_model gemma2
+python islandIntegration.py 3-island-30-gen/island_qwen25 --global_path 3-island-30-gen/global_data --llm_model qwen25

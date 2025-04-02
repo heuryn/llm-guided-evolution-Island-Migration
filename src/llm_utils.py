@@ -47,7 +47,9 @@ def get_llm_code_generator(llm_model):
         elif llm_model == LLM_QWEN:
             llm_code_generator = submit_qwen
         elif llm_model == LLM_GEMMA2:
-            llm_code_generator = submit_gemma
+            llm_code_generator = submit_gemma2
+        elif llm_model == LLM_GEMMA3:
+            llm_code_generator = submit_gemma3
         elif llm_model == LLM_DEEPSEEK:
             llm_code_generator = submit_deepseek
         else:
@@ -271,6 +273,47 @@ def submit_llama3_hf(txt2llama, max_new_tokens=1024, top_p=0.15, temperature=0.1
         return results[0], None
     else:
         return results[0]
+    
+
+def submit_llama3(txt2mixtral, max_new_tokens=764, top_p=0.15, temperature=0.1, 
+                   model_id="meta-llama/Llama-3.1-70B-Instruct", return_gen=False):
+    max_new_tokens = np.random.randint(800, 1000)
+    print(f'max_new_tokens: {max_new_tokens}')
+    start_time = time.time()
+    model = transformers.AutoModelForCausalLM.from_pretrained(
+        model_id,
+        trust_remote_code=True,
+        torch_dtype=float16,
+        device_map='auto',
+        token=HF_TOKEN
+    )
+    model.eval()
+    print(model.device)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id, token=HF_TOKEN)
+
+    generate_text = transformers.pipeline(
+        model=model, tokenizer=tokenizer,
+        return_full_text=False,  # if using langchain set True
+        task="text-generation",
+        # we pass model parameters here too
+        temperature=temperature,  # 'randomness' of outputs, 0.0 is the min and 1.0 the max
+        top_p=top_p,  # select from top tokens whose probability add up to 15%
+        top_k=0,  # select from top 0 tokens (because zero, relies on top_p)
+        max_new_tokens=max_new_tokens,  # max number of tokens to generate in the output
+        repetition_penalty=1.1,  # if output begins repeating increase
+        do_sample=True,
+    )
+
+    res = generate_text(txt2mixtral)
+    output_txt = res[0]["generated_text"]
+    box_print("LLM OUTPUT", print_bbox_len=60, new_line_end=False)
+    print(output_txt)
+    box_print(f'time to load in seconds: {round(time.time()-start_time)}', print_bbox_len=120, new_line_end=False)   
+    if return_gen is False:
+        return output_txt
+    else:
+        return output_txt, generate_text
+
 
 def submit_mixtral(txt2mixtral, max_new_tokens=764, top_p=0.15, temperature=0.1, 
                    model_id="mistralai/Mixtral-8x7B-Instruct-v0.1", return_gen=False):
@@ -350,7 +393,7 @@ def submit_qwen(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1,
         return output_txt, generate_text
     
 def submit_deepseek(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1, 
-                   model_id="deepseek-ai/DeepSeek-R1-Distill-Llama-8B", return_gen=False):
+                   model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B", return_gen=False):
     max_new_tokens = np.random.randint(800, 1000)
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
@@ -387,8 +430,8 @@ def submit_deepseek(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1,
     else:
         return output_txt, generate_text
     
-def submit_gemma(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1, 
-                   model_id="google/gemma-2-2b-it", return_gen=False):
+def submit_gemma2(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1, 
+                   model_id="google/gemma-2-9b-it", return_gen=False):
 #                   model_id="/home/hice1/jli3325/scratch/.cache/huggingface/hub/models--google--gemma-2-2b-it", return_gen=False):
     max_new_tokens = np.random.randint(800, 1000)
     print(f'max_new_tokens: {max_new_tokens}')
@@ -426,8 +469,48 @@ def submit_gemma(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1,
     else:
         return output_txt, generate_text
     
+
+def submit_gemma3(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1, 
+                   model_id="google/gemma-3-12b-it", return_gen=False):
+    max_new_tokens = np.random.randint(800, 1000)
+    print(f'max_new_tokens: {max_new_tokens}')
+    start_time = time.time()
+    model = transformers.AutoModelForCausalLM.from_pretrained(
+        model_id,
+        trust_remote_code=True,
+        torch_dtype=float16,
+        device_map='auto'
+    )
+    model.eval()
+    print(model.device)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+
+    generate_text = transformers.pipeline(
+        model=model, tokenizer=tokenizer,
+        return_full_text=False,  # if using langchain set True
+        task="text-generation",
+        # we pass model parameters here too
+        temperature=temperature,  # 'randomness' of outputs, 0.0 is the min and 1.0 the max
+        top_p=top_p,  # select from top tokens whose probability add up to 15%
+        top_k=0,  # select from top 0 tokens (because zero, relies on top_p)
+        max_new_tokens=max_new_tokens,  # max number of tokens to generate in the output
+        repetition_penalty=1.1,  # if output begins repeating increase
+        do_sample=True,
+    )
+
+    res = generate_text(txt2gemma)
+    output_txt = res[0]["generated_text"]
+    box_print("LLM OUTPUT", print_bbox_len=60, new_line_end=False)
+    print(output_txt)
+    box_print(f'time to load in seconds: {round(time.time()-start_time)}', print_bbox_len=120, new_line_end=False)   
+    if return_gen is False:
+        return output_txt
+    else:
+        return output_txt, generate_text
     
-    
+
+
+
 def mutate_prompt(llm_model, template, hugging_face=HUGGING_FACE_BOOL):
     path, filename = os.path.split(template)
     with open(template, 'r') as file:
