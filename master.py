@@ -285,7 +285,7 @@ if __name__ == "__main__":
         '''
 
         # migrate individuals between islands
-        if gen % migration_gen == 0 and num_islands > 1:
+        if migration_gen != 0 and num_islands > 1 and gen % migration_gen == 0:
             print("Starting island migration on generation " + str(gen), flush=True)
             migrateIslands(topology, num_islands, checkpoints, gen)
     
