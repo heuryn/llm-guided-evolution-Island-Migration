@@ -213,7 +213,7 @@ def check_contents_for_error(contents):
     else:
         return None
 
-def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3600*3):
+def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3600*3, extension=""):
     """
     Check for the completion of a job by searching for its output file and scanning for errors.
 
@@ -234,7 +234,7 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
             return state
 
     start_time = time.time()
-    output_file = f'slurm-{job_id}.out'
+    output_file = f'{SLURM_OUTPUT_PATH}{extension}slurm-{job_id}.out'
 
     while True:
         # Check if the timeout is reached
@@ -254,7 +254,7 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
 
         # Wait for some time before checking again
         time.sleep(check_interval)
-        print(f'\t‣ Waiting on check4job_completion LLM job: {job_id} Time: {round(time.time() - start_time)}s', flush=True)
+        print(f'\t‣ Waiting on check4job_completion LLM job: {job_id} Time: {round(time.time() - start_time)}s Path: {output_file}', flush=True)
         
         
 def generate_random_string(length=20):
@@ -298,7 +298,7 @@ def create_individual(container, llm_model, temp_min=0.05, temp_max=0.4):
             print(f'Checking for Job Completion: {job_id} for {gene_id}', flush=True)
         else:
             print(f'Checking completion for {gene_id}', flush=True)
-        job_done = check4job_completion(job_id=job_id, local_output=local_output)
+        job_done = check4job_completion(job_id=job_id, local_output=local_output, extension="evolution/")
         # print(f'Model Files for {gene_id} are Loaded') if job_done else print(f'Error Loading Model Files for {gene_id}', flush=True)
         
     return individual
@@ -383,7 +383,8 @@ def check4results(gene_id):
             else:
                 return state
         # there is no local output, so process with slurm
-        output_file = f'slurm-{job_id}.out'
+        output_file = f'{SLURM_OUTPUT_PATH}evaluation/slurm-{job_id}.out'
+        print(f"Checked Path: {output_file}")
         # Check if the output file exists
         if os.path.exists(output_file):
             with open(output_file, 'r') as file:
@@ -534,7 +535,7 @@ def delayed_mate_check(offspring):
                 new_gene_id, job_id = k, GLOBAL_DATA[k]["job_id"]
                 print(f'Delayed Mating Check: {new_gene_id}, LLM Job ID: {job_id}')
                 print(f'\t‣ Checking for Crossover Job Completion: {job_id} for {new_gene_id}')
-                job_done = check4job_completion(job_id)
+                job_done = check4job_completion(job_id, extension="evolution/")
 
                 if job_done:
                     print(f'\t‣ Model Files for {new_gene_id} are Loaded', flush=True) 
@@ -565,7 +566,7 @@ def delayed_creation_check(offspring):
                     gene_id = k
                     job_id = GLOBAL_DATA[k]["job_id"]
                     print(f'Checking for Job Completion: {job_id} for {gene_id}', flush=True)
-                    job_done = check4job_completion(job_id)
+                    job_done = check4job_completion(job_id, extension="evolution/")
                   
     return offspring
 
@@ -582,7 +583,7 @@ def delayed_mutate_check(offspring):
                     job_id = GLOBAL_DATA[k]["job_id"]
                     print(f'Delayed Mutation Check: {new_gene_id}, LLM Job ID: {job_id}', flush=True)
                     print(f'\t‣ Checking for Creation Job Completion: {job_id} for {new_gene_id}')
-                    job_done = check4job_completion(job_id)
+                    job_done = check4job_completion(job_id, extension="evolution/")
                     if job_done:
                         print(f'\t‣ Model Files for {new_gene_id} are Loaded') 
                     else: 
@@ -636,7 +637,7 @@ def customCrossover(ind1, ind2, llm_model):
         
         if successful_sub_flag:
             print(f'\t‣ Checking for Crossover Job Completion: {job_id} for {new_gene_id}')
-            job_done = check4job_completion(job_id, local_output)
+            job_done = check4job_completion(job_id, local_output, extension="evolution/")
             if job_done:
                 print(f'\t‣ Model Files for {new_gene_id} are Loaded')
             else: 
@@ -714,7 +715,7 @@ def customMutation(individual, llm_model, indpb, temp_min=0.1, temp_max=0.4):
     
     if successful_sub_flag:
         print(f'\t‣ Checking for Mutation Job Completion: {job_id} for {new_gene_id}')
-        job_done = check4job_completion(job_id, local_output)
+        job_done = check4job_completion(job_id, local_output, extension="evolution/")
         if job_done:
             print(f'\t‣ Model Files for {new_gene_id} are Loaded')
         else: 

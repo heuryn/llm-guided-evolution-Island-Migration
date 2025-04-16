@@ -77,7 +77,7 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
     
 
     start_time = time.time()
-    output_file = f'Report_islands-{job_id}.out'
+    output_file = f'{SLURM_OUTPUT_PATH}islands/Report_islands-{job_id}.out'
 
     while True:
         # Check if the timeout is reached
@@ -97,7 +97,8 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
 
         # Wait for some time before checking again
         time.sleep(check_interval)
-        print(f'\t‣ Waiting on check4job_completion LLM job: {job_id} Time: {round(time.time() - start_time)}s', flush=True)
+        print(f'\t‣ Waiting on check4job_completion LLM job: {job_id} Time: {round(time.time() - start_time)}s Path: {output_file}', flush=True)
+        
 
 
 def unpackIslands(num_islands, checkpoints) -> list[Island]:

@@ -2,11 +2,12 @@ import os
 import numpy as np
 
 
-ROOT_DIR = "/home/hice1/jdamato9/scratch/llm-island-migration/"
+ROOT_DIR = "/home/hice1/aganesan44/scratch/llm-island-migration/"
 CONDA_ENV = "llmIslandsEnv"
 HF_TOKEN = "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"
 GLOBAL_DATA_PATH = "global_data"
 DONT_SCRAPE_ME = HF_TOKEN
+SLURM_OUTPUT_PATH = "run_job_outputs/"
 
 # DATA_PATH absolute or relative to ExquisiteNetV2
 DATA_PATH = os.path.join(ROOT_DIR, 'cifar10')
@@ -36,7 +37,7 @@ LLM_GEMMA3 = 'gemma3'
 LLM_DEEPSEEK = 'deepseek'
 
 
-ISLAND_LLMS = [LLM_GEMMA3, LLM_QWEN, LLM_DEEPSEEK, LLM_LLAMA3]
+ISLAND_LLMS = [LLM_QWEN, LLM_MIXTRAL, LLM_DEEPSEEK, LLM_GEMMA3, LLM_LLAMA3]
 MAX_ISLANDS = len(ISLAND_LLMS)
 
 GLOBAL_DATA = {}
@@ -54,9 +55,9 @@ NUM_EOT_ELITES = 2
 GENERATION = 0
 PROB_QC = 0.0
 PROB_EOT = 0.05
-num_generations = 30  # Number of generations
-migration_gen = 3 # how many generations btwn migration
-start_population_size = 32
+num_generations = 2  # Number of generations
+migration_gen = 0 # how many generations btwn migration
+start_population_size = 16
 # start_population_size = 144   # Size of the population 124=72
 #population_size = 44 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
 population_size = 12 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
@@ -78,7 +79,7 @@ PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=evaluateGene
 #SBATCH --time=00:30:00
 #SBATCH -N1 --ntasks-per-node=32
-
+#SBATCH --output=run_job_outputs/evaluation/slurm-%j.out
 
 #SBATCH -G 1
 #SBATCH -C "{}"
@@ -110,6 +111,7 @@ LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name={}
 #SBATCH --time=00:20:00
 #SBATCH -N1 --ntasks-per-node=32
+#SBATCH --output=run_job_outputs/evolution/slurm-%j.out
 
 #SBATCH -G 2 
 #SBATCH -C "{}"
@@ -139,7 +141,7 @@ PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS = """#!/bin/bash
 #SBATCH -N1 --ntasks-per-node=16
 #SBATCH --mem-per-gpu=16G
 #SBATCH --time=03:00:00
-#SBATCH -oReport_islands-%j.out
+#SBATCH --output=run_job_outputs/islands/Report_islands-%j.out
 #SBATCH --gres=gpu:1
 #SBATCH -C intel
 

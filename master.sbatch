@@ -3,7 +3,7 @@
 #SBATCH -N1 --ntasks-per-node=4
 #SBATCH --mem-per-gpu=16G
 #SBATCH --time=12:00:00
-#SBATCH -oReport-%j.out
+#SBATCH --output=run_job_outputs/Report-%j.out
 #SBATCH --gres=gpu:1
 #SBATCH -C intel
 
