@@ -197,7 +197,6 @@ def submit_mixtral_hf(txt2mixtral, max_new_tokens=1024, top_p=0.15, temperature=
     client.headers["x-use-cache"] = "0"
 
     instructions = [
-
             {
                 "role": "user",
                 "content": "Provide code in Python\n" + txt2mixtral,
@@ -277,8 +276,8 @@ def submit_llama3_hf(txt2llama, max_new_tokens=1024, top_p=0.15, temperature=0.1
         return results[0]
     
 
-def submit_llama3(txt2mixtral, max_new_tokens=764, top_p=0.15, temperature=0.1, 
-                   model_id="meta-llama/Llama-3.2-11B-Vision-Instruct", return_gen=False):
+def submit_llama3(txt2Llama, max_new_tokens=764, top_p=0.15, temperature=0.1, 
+                   model_id="meta-llama/Llama-3.1-70B-Instruct", return_gen=False):
     max_new_tokens = np.random.randint(800, 1000)
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
@@ -305,8 +304,8 @@ def submit_llama3(txt2mixtral, max_new_tokens=764, top_p=0.15, temperature=0.1,
         repetition_penalty=1.1,  # if output begins repeating increase
         do_sample=True,
     )
-
-    res = generate_text(txt2mixtral)
+    
+    res = generate_text(txt2Llama)
     output_txt = res[0]["generated_text"]
     box_print("LLM OUTPUT", print_bbox_len=60, new_line_end=False)
     print(output_txt)
@@ -483,9 +482,8 @@ def submit_gemma3(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1,
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
-        #torch_dtype=float16,
-        device_map='auto',
-        token=HF_TOKEN,
+        # torch_dtype=float16,
+        device_map='auto'
     )
     model.eval()
     print(model.device)

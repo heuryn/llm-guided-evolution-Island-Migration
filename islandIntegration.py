@@ -51,7 +51,7 @@ def update_ancestry(gene_id_child, gene_id_parent, ancestery, mutation_type=None
     return ancestery
 
 
-def generate_template(PROB_EOT, GEN_COUNT, TOP_N_GENES, SOTA_ROOT, SEED_NETWORK, ROOT_DIR):
+def generate_template(PROB_EOT, GEN_COUNT, TOP_N_GENES, SOTA_ROOT, SEED_NETWORK, ROOT_DIR, llm_model):
     """
     Generates a template based on given probabilities and gene information.
 
@@ -80,6 +80,7 @@ def generate_template(PROB_EOT, GEN_COUNT, TOP_N_GENES, SOTA_ROOT, SEED_NETWORK,
             
         template_txt = eot_template_txt.format(x, y, "{}")
         mute_type = "EoT"
+        return template_txt, mute_type
     else:
         print("\t‣ FixedPrompts")
         prompt_templates = glob.glob(f'{ROOT_DIR}/templates/FixedPrompts/*/*.txt')
@@ -89,7 +90,54 @@ def generate_template(PROB_EOT, GEN_COUNT, TOP_N_GENES, SOTA_ROOT, SEED_NETWORK,
             template_txt = file.read()
         with open(f'{ROOT_DIR}/templates/ConstantRules.txt', 'r') as file:
             rules_txt = file.read()
-        template_txt = f'{template_txt}\n{rules_txt}'
+            
+        """
+        Note that template text is either concise or roleplay. We want roleplay prompts to be a part of the system prompt
+        Concise files start with 'Q:' and roleplay start with a roleplay prompt that should be a part of the system prompt. 
+
+        System prompting formatting for different LLMs:
+        LLaMa3 -->              <|begin_of_text|>\n<|system|>\nrules, system description\n<|user|>\nquestion and context\n<|assistant|>  
+        mixtral -->             <|system|>\nrules, system description\n<|user|>\nquestion and context\n<|assistant|>
+        qwen and deepseek -->   <|im_start|>system\nrules, system description<|im_end|>\n<|im_start|>user\nquestion and context<|im_end|>\n<|im_start|>assistant
+        gemma2 -->              system, rules\nUser: question and context\nAssistant:
+        gemma3 -->              System, rules\nQ: question and context\nA:
+        """
+        
+        is_concise = template_txt[:2] == "Q:"
+        if not is_concise:
+            split_at_Q = template_txt.split('Q:')
+
+        if llm_model == LLM_LLAMA3:
+            if is_concise:
+                template_txt = f"<|begin_of_text|>\n<|system|>\n{rules_txt}\n<|user|>\n{template_txt}\n<|assistant|>"
+            else:
+                template_txt = f"<|begin_of_text|>\n<|system|>\n{split_at_Q[0]}\n{rules_txt}\n<|user|>\nQ: {split_at_Q[1]}\n<|assistant|>"
+
+        elif llm_model == LLM_MIXTRAL:
+            if is_concise:
+                template_txt = f"<|system|>\n{rules_txt}\n<|user|>\n{template_txt}\n<|assistant|>"
+            else:
+                template_txt = f"<|system|>\n{split_at_Q[0]}\n{rules_txt}\n<|user|>\nQ: {split_at_Q[1]}\n<|assistant|>"
+
+        elif llm_model in [LLM_QWEN, LLM_DEEPSEEK]:
+            if is_concise:
+                template_txt = f"<|im_start|>system\n{rules_txt}<|im_end|>\n<|im_start|>user\n{template_txt}<|im_end|>\n<|im_start|>assistant"
+            else:
+                template_txt = f"<|im_start|>system\n{split_at_Q[0]}\n{rules_txt}<|im_end|>\n<|im_start|>user\nQ: {split_at_Q[1]}<|im_end|>\n<|im_start|>assistant"
+
+        elif llm_model == LLM_GEMMA2:
+            if is_concise:
+                template_txt = f"System: {rules_txt}\nUser: {template_txt}\nAssistant:"
+            else:
+                template_txt = f"System: {split_at_Q[0]}\n{rules_txt}\nUser: {split_at_Q[1]}\nAssistant:"
+        
+        elif llm_model == LLM_GEMMA3:
+            if is_concise:
+                template_txt = f"System: {rules_txt}\n{template_txt}\n"
+            else:
+                template_txt = f"System: {split_at_Q[0]}\n{rules_txt}\nQ: {split_at_Q[1]}\n"
+        else:
+            template_txt = f"{rules_txt}\n\n{template_txt}"
 
     return template_txt, mute_type
 
@@ -127,7 +175,7 @@ def write_bash_script(
     gene_id_child = fetch_gene(output_filename)
     if python_file=='src/llm_mutation.py':
         template_txt, mute_type = generate_template(PROB_EOT, GEN_COUNT, TOP_N_GENES, 
-                                                    SOTA_ROOT, SEED_NETWORK, ROOT_DIR)
+                                                    SOTA_ROOT, SEED_NETWORK, ROOT_DIR, llm_model)
         if GEN_COUNT >= 0: # this does not need to happen at creation of population
             GLOBAL_DATA_ANCESTERY = update_ancestry(gene_id_child, gene_id_parent, GLOBAL_DATA_ANCESTERY, 
                                                     mutation_type=mute_type, gene_id_parent2=None)
