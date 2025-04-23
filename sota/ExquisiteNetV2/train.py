@@ -175,7 +175,7 @@ def main():
     print(' '*20, "Evaluate:")
 
     #load best weight & model
-    model = torch.load(pj(save_dir, "md.pt"), device)
+    model = torch.load(pj(save_dir, "md.pt"), device, weights_only=False)
     model.eval()
 
     tr_loss, tr_acc = eval_acc(

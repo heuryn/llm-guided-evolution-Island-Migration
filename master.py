@@ -230,7 +230,7 @@ if __name__ == "__main__":
     checkpoints = args.checkpoints
     num_islands = args.num_islands
 
-    if num_islands >= MAX_ISLANDS:
+    if num_islands > MAX_ISLANDS:
         print("Number of islands exceeds maximum allowed: " + str(MAX_ISLANDS))
         exit(1)
 

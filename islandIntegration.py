@@ -484,7 +484,7 @@ def check_and_update_fitness(population, timeout=3600*30, loop_delay=60):
                         print(f"\t‣ Still Waiting On: Gene: {gene_id}", flush=True)
                         print_job_info(GLOBAL_DATA[gene_id])
                         all_done = False  # Some jobs are still running
-        if all_done or count >= 10:
+        if all_done:
             box_print("Evalutated All Genes", print_bbox_len=60)
             break  # All jobs are done or timed out
             
@@ -672,7 +672,7 @@ def customCrossover(ind1, ind2, llm_model):
     return offspring1, offspring2
 
 
-def customMutation(individual, llm_model, indpb, temp_min=0.1, temp_max=0.4):
+def customMutation(individual, llm_model, indpb, temp_min=0.1, temp_max=0.3):
     """ Custom mutation function that randomly changes the temperature parameter of the individual's task and assigns a new ID.
     Parameters:
     individual (list): The individual to be mutated.

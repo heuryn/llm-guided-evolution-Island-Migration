@@ -52,6 +52,8 @@ def get_llm_code_generator(llm_model):
             llm_code_generator = submit_gemma3
         elif llm_model == LLM_DEEPSEEK:
             llm_code_generator = submit_deepseek
+        elif llm_model == LLM_LLAMA3:
+            llm_code_generator = submit_llama3
         else:
             print("NO LLM SPECIFIED: USING DEEPSEEK")
             llm_code_generator = submit_deepseek
@@ -276,11 +278,11 @@ def submit_llama3_hf(txt2llama, max_new_tokens=1024, top_p=0.15, temperature=0.1
     
 
 def submit_llama3(txt2mixtral, max_new_tokens=764, top_p=0.15, temperature=0.1, 
-                   model_id="meta-llama/Llama-3.1-70B-Instruct", return_gen=False):
+                   model_id="meta-llama/Llama-3.2-11B-Vision-Instruct", return_gen=False):
     max_new_tokens = np.random.randint(800, 1000)
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
-    model = transformers.AutoModelForCausalLM.from_pretrained(
+    model = transformers.AutoModelForImageTextToText.from_pretrained(
         model_id,
         trust_remote_code=True,
         torch_dtype=float16,
@@ -394,18 +396,21 @@ def submit_qwen(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1,
     
 def submit_deepseek(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1, 
                    model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B", return_gen=False):
-    max_new_tokens = np.random.randint(800, 1000)
+    max_new_tokens = 3000
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
-        torch_dtype=float16,
-        device_map='auto'
+        #torch_dtype=float16,
+        device_map='auto',
+        use_auth_token=HF_TOKEN
     )
     model.eval()
     print(model.device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(
+        model_id,
+        use_auth_token=HF_TOKEN)
 
     generate_text = transformers.pipeline(
         model=model, tokenizer=tokenizer,
@@ -431,15 +436,15 @@ def submit_deepseek(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1,
         return output_txt, generate_text
     
 def submit_gemma2(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1, 
-                   model_id="google/gemma-2-9b-it", return_gen=False):
+                   model_id="google/gemma-2-27b-it", return_gen=False):
 #                   model_id="/home/hice1/jli3325/scratch/.cache/huggingface/hub/models--google--gemma-2-2b-it", return_gen=False):
-    max_new_tokens = np.random.randint(800, 1000)
+    max_new_tokens = 3000
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
-        torch_dtype=float16,
+       # torch_dtype=float16,
         device_map='auto'
     )
     model.eval()
@@ -471,19 +476,20 @@ def submit_gemma2(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1,
     
 
 def submit_gemma3(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1, 
-                   model_id="google/gemma-3-12b-it", return_gen=False):
+                   model_id="google/gemma-3-12b-pt", return_gen=False):
     max_new_tokens = np.random.randint(800, 1000)
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
-        torch_dtype=float16,
-        device_map='auto'
+        #torch_dtype=float16,
+        device_map='auto',
+        token=HF_TOKEN,
     )
     model.eval()
     print(model.device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id, use_auth_token=HF_TOKEN)
 
     generate_text = transformers.pipeline(
         model=model, tokenizer=tokenizer,
@@ -525,5 +531,5 @@ def mutate_prompt(llm_model, template, hugging_face=HUGGING_FACE_BOOL):
     if "```" in output:
         output = output.split("```")[0]
     output = output + "\n```python\n{}\n```"
-    with open(os.path.join(path, "mutant{}.txt".format(i)), 'w') as file:
+    with open(os.path.join(path, "mutant{}.txt".format(llm_model)), 'w') as file:
         file.write(output)
