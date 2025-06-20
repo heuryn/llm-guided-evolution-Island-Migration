@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=LLM_Island_qwen25
+#SBATCH --job-name=LLM_Island_mixtral
 #SBATCH -N1 --ntasks-per-node=16
 #SBATCH --mem-per-gpu=16G
-#SBATCH --time=03:00:00
+#SBATCH --time=16:00:00
 #SBATCH --output=run_job_outputs/islands/Report_islands-%j.out
 #SBATCH --gres=gpu:1
 #SBATCH -C intel
@@ -20,4 +20,4 @@ conda info
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
 # Run Python script
-python islandIntegration.py first_test/island_qwen25 --global_path first_test/global_data --llm_model qwen25
+python run_improved.py test7/island_mixtral --global_path test7/global_data --llm_model mixtral

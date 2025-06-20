@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=llm_opt
-#SBATCH -t 8:00:00              		# Runtime in D-HH:MM
+#SBATCH -t 16:00:00              		# Runtime in D-HH:MM
 #SBATCH --mem-per-gpu 16G
 #SBATCH -n 1                          # number of CPU cores
 #SBATCH -N 1
@@ -14,8 +14,10 @@ module load cuda
 module load anaconda3
 export CUDA_VISIBLE_DEVICES=0
 
-conda activate llm_guided_env
-export LD_LIBRARY_PATH=~/.conda/envs/llm_guided_env/lib/python3.12/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
+conda activate llmIslandsEnv
+
+export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+export LD_LIBRARY_PATH=~/.conda/envs/llmIslandsEnv/lib/python3.12/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
 conda info
 
-python run_improved.py first_test
+python run_improved.py third_test --global_path third_test/global_data --llm_model qwen25

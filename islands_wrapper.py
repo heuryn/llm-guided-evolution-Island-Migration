@@ -3,11 +3,10 @@ import argparse
 import glob
 from deap import base, creator, tools
 from deap.tools import HallOfFame
-from src.utils.print_utils import print_swaps
 import subprocess
 import time
 import networkx as nx
-from islandIntegration import load_checkpoint, save_checkpoint
+from run_improved import load_checkpoint, save_checkpoint
 from islands import Individual, Island, Topology, migrate, generate_graph_topology
 from src.cfg.constants import *
 from src.utils.print_utils import box_print
@@ -45,13 +44,13 @@ def check_contents_for_error(contents):
     if "traceback" in contents.lower() or "slurmstepd: error" in contents.lower():
         print("\t☠ Error Found in LLM Job Output.", flush=True)
         return False
-    elif "finished one generation" in contents.lower():
+    elif "end of era" in contents.lower():
         print("\t☑ LLM Job Completed Successfully.", flush=True)
         return True
     else:
         return None
 
-def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3600*3):
+def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3600*30):
     """
     Check for the completion of a job by searching for its output file and scanning for errors.
 
@@ -152,36 +151,9 @@ def migrateIslands(topology, num_islands, checkpoints, gen):
     # array of class Island 
     print("UNPACKING ISLANDS")
     islands = unpackIslands(num_islands, checkpoints)
-
-    '''
-    print()
-    array1_before = []
-    island1 = islands[0]
-    for individual in island1.individuals:
-        array1_before.append(individual.name)
-    array2_before = []
-    island2 = islands[1]
-    for individual in island2.individuals:
-        array2_before.append(individual.name)
-    '''
     
     print("MIGRATING INDIVIDUALS")
     migrate(topology, islands)
-
-    '''
-    array1_after = []
-    island1 = islands[0]
-    for individual in island1.individuals:
-        array1_after.append(individual.name)
-    array2_after = []
-    island2 = islands[1]
-    for individual in island2.individuals:
-        array2_after.append(individual.name)
-    
-    print(" ----------- print_swaps output ----------- ")
-    print()
-    print_swaps(array1_before, array2_before, array1_after, array2_after)
-    '''
 
     print("PACKING ISLANDS")
     print()
@@ -246,8 +218,8 @@ if __name__ == "__main__":
 
     global_path = os.path.join(checkpoints, GLOBAL_DATA_PATH)
     # start generation
-    for gen in range(num_generations):
-        print("Starting generation " + str(gen), flush=True)
+    for era in range(1, 1 if migration_gen == 0 else num_generations // migration_gen + 1):
+        print("Starting era " + str(era), flush=True)
         job_ids = []
 
         # submit island generation jobs
@@ -286,8 +258,10 @@ if __name__ == "__main__":
         '''
 
         # migrate individuals between islands
-        if migration_gen != 0 and num_islands > 1 and gen % migration_gen == 0:
-            print("Starting island migration on generation " + str(gen), flush=True)
-            migrateIslands(topology, num_islands, checkpoints, gen)
+        if migration_gen != 0:
+            print("Starting island migration on era " + str(era), flush=True)
+            migrateIslands(topology, num_islands, checkpoints, era * migration_gen)
+
+        print("Finished era " + str(era), flush=True)
     
     print("Finished evolutionary loop")

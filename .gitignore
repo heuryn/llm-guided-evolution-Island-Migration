@@ -8,3 +8,6 @@ sota/ExquisiteNetV2/cifar-10-batches-py
 *.bmp
 build/
 tests/*/outputs
+*.out
+*.pkl
+src/island_temp_script.sh

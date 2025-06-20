@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 #: Root directory of the repository
-ROOT_DIR = "/home/hice1/hice1/aganesan44/scratch/llm-island-migration/"
+ROOT_DIR = "/home/hice1/hyu462/scratch/llm-guided-evolution-Island-Migration/"
 CONDA_ENV = "llmIslandsEnv"
 GLOBAL_DATA_PATH = "global_data"
 SLURM_OUTPUT_PATH = "run_job_outputs/"
@@ -15,7 +15,7 @@ SOTA_ROOT = os.path.join(ROOT_DIR, 'sota/ExquisiteNetV2')
 #: Location where the network architecture for the seed resides
 SEED_NETWORK = os.path.join(SOTA_ROOT, "network.py")
 #: Whether to run llm-ge locally (True) or distribute across a slurm cluster  (False)
-LOCAL = True
+LOCAL = False
 if LOCAL:
 	RUN_COMMAND = 'bash'
 	DELAYED_CHECK = False
@@ -50,7 +50,7 @@ try:
 except:
 	GEMINI_API_KEY = ''
 
-ISLAND_LLMS = [LLM_QWEN, LLM_MIXTRAL, LLM_LLAMA3, LLM_GEMMA2, LLM_GEMMA3, LLM_DEEPSEEK, LLM_GEMINI]
+ISLAND_LLMS = [LLM_QWEN, LLM_MIXTRAL, LLM_DEEPSEEK, LLM_LLAMA3, LLM_GEMMA2, LLM_GEMMA3, LLM_GEMINI]
 
 MAX_ISLANDS = len(ISLAND_LLMS)
 
@@ -68,30 +68,36 @@ INVALID_FITNESS_MAX = tuple([float(x*np.inf*-1) for x in FITNESS_WEIGHTS])
 PLACEHOLDER_FITNESS = tuple([int(x*9999999999*-1) for x in FITNESS_WEIGHTS])
 
 #: Number of elite individuals to utilize within the Evolution of Thought (EOT) operation
-NUM_EOT_ELITES = 10
+NUM_EOT_ELITES = 4
 
 #: Cycle in the optimization and output directory where intermediate data will be stored.
 GENERATION = 0
 
-PROB_QC = 0.0
-PROB_EOT = 0.25
+PROB_QC = 0.0 # Probability of running quality control checks on responses from the LLM
+PROB_EOT = 0 # Probability of running Evolution of Thought (EOT) on the responses from the LLM
 
 #: Number of generations to run for
 num_generations = 30  # Number of generations
+
 #: Number of generations between migrations
-migration_gen = 3
+migration_gen = 3 # Set to 0 to disable migrations (1 island runs)
+
 #: Population size for launching optimization
-start_population_size = 32
-# start_population_size = 144   # Size of the population 124=72
-#population_size = 44 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
+start_population_size = 128
 
 #: Population size to utilize in each generation after optimization begins
-population_size = 8 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
+# population_size = 44 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
+population_size = 32
 
-crossover_probability = 0.35  #: Probability of mating two individuals
-mutation_probability = 0.8 	  #: Probability of mutating an individual
+#: Probability of mating two individuals
+crossover_probability = 0.35
+
+#: Probability of mutating an individual
+mutation_probability = 0.8
+
 #: Number of elites to consider
-num_elites = 44
+num_elites = 8
+
 #: Number of individuals to keep in the hall of fame across the optimization
 hof_size = 100
 
@@ -103,28 +109,32 @@ hof_size = 100
 #: Whether (True) or not (False) you wish to run quality control checks on responses from the LLM
 QC_CHECK_BOOL = False
 #: Whether (True) or not (False) to submit LLM prompts remotely to sources such as hugging face.
-INFERENCE_SUBMISSION = True
+INFERENCE_SUBMISSION = False
 #LLM_GPU = 'NVIDIAA100-SXM4-80GB|NVIDIAA10080GBPCIe|TeslaV100-PCIE-32GB|QuadroRTX4000|GeForceGTX1080Ti|GeForceGTX1080|TeslaV100-PCIE-32GB|TeslaV100S-PCIE-32GB'
 #LLM_GPU = 'NVIDIAA100-SXM4-80GB|NVIDIAA10080GBPCIe|TeslaV100-PCIE-32GB|TeslaV100S-PCIE-32GB|NVIDIARTX6000AdaGeneration|NVIDIARTXA6000|NVIDIARTXA5000|NVIDIARTXA4000|GeForceGTX1080Ti|QuadroRTX4000|QuadroP4000|GeForceGTX1080|TeslaP4'
 #: If using slurm, this string will be used to request GPUs for the submission of prompts to the LLM.
-LLM_GPU = 'A100-40GB|A100-80GB|H100|V100-16GB|V100-32GB|RTX6000|A40|L40S'
+# LLM_GPU = 'A100-40GB|A100-80GB|H100|V100-16GB|V100-32GB|RTX6000|A40|L40S'
+LLM_GPU = 'H100|H200|A100-80GB|A100-40GB'
 
 #: Template script for submitting job for evaluation.
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=evaluateGene
-#SBATCH -t 8-00:00
-#SBATCH --gres=gpu:1
+#SBATCH --time=06:00:00
+#SBATCH -N1 --ntasks-per-node=32
+#SBATCH --output=run_job_outputs/evaluation/slurm-%j.out
+
+#SBATCH -G 1
 #SBATCH -C "{}"
 #SBATCH --mem-per-gpu 32G
-#SBATCH -n 16
-#SBATCH -N 1
 
-echo "Launching Python Evaluation"
+
+echo "Launching AIsurBL"
 hostname
 # Load GCC version 9.2.0
 # module load gcc/13.2.0
-module load cuda
+module load cuda/12
 module load anaconda3
+
 # Activate Conda environment
 conda activate {}
 
@@ -134,7 +144,6 @@ conda activate {}
 
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 export MKL_THREADING_LAYER=GNU
-export LD_LIBRARY_PATH=~/.conda/envs/llm_guided_env/lib/python3.12/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
 
 # Run Python script
 {}
@@ -144,25 +153,22 @@ export LD_LIBRARY_PATH=~/.conda/envs/llm_guided_env/lib/python3.12/site-packages
 #: Template script for submitting a prompt to the LLM
 LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name={}
-#SBATCH -t 8-00:00
-#SBATCH --gres=gpu:1
-#SBATCH -C "{}"
-#SBATCH --mem-per-gpu 32G
-#SBATCH -n 16
-#SBATCH -N 1
+#SBATCH --time=03:00:00
+#SBATCH -N1 --ntasks-per-node=32
 #SBATCH --output=run_job_outputs/evolution/slurm-%j.out
+
+#SBATCH -G 2 
+#SBATCH -C "{}"
+#SBATCH --mem-per-gpu 80G
+
 
 echo "Launching AIsurBL"
 hostname
 
-# Load GCC version 9.2.0
-# module load gcc/13.2.0
-# module load cuda/11.8
-module load cuda
+module load cuda/12
 module load anaconda3
 # Activate Conda environment
 conda activate {}
-export LD_LIBRARY_PATH=~/.conda/envs/llm_guided_env/lib/python3.12/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
 # conda info
 
 CUDA_LAUNCH_BLOCKING=1
@@ -180,7 +186,7 @@ PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS = """#!/bin/bash
 #SBATCH --job-name=LLM_Island_{}
 #SBATCH -N1 --ntasks-per-node=16
 #SBATCH --mem-per-gpu=16G
-#SBATCH --time=03:00:00
+#SBATCH --time=16:00:00
 #SBATCH --output=run_job_outputs/islands/Report_islands-%j.out
 #SBATCH --gres=gpu:1
 #SBATCH -C intel
@@ -198,7 +204,7 @@ conda info
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
 # Run Python script
-python islandIntegration.py {} --global_path {} --llm_model {}
+python run_improved.py {} --global_path {} --llm_model {}
 """
 
 

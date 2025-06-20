@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from enum import Enum
 import math
 import heapq
+import shutil
+import os
 
 '''
 To use this class for migration, at the end of each generation: 
@@ -22,8 +24,9 @@ class Topology(Enum):
     TORUS = "Torus"
 
 class Individual:
-    def __init__(self, path, rank):
-        self.path = path
+    def __init__(self, name, rank):
+        # This is the filename of the individual
+        self.name = name
         self.rank = rank
 
     def __lt__(self, other):
@@ -148,16 +151,17 @@ def migrate(topology: nx.Graph, islands_list: list[Island]) -> None:
     Returns:
         nx.Graph: A NetworkX graph object representing the islands and their connections.
     """
-    # Map of each island to a list of individuals migrating to it
-    migration = {island: [] for island in islands.keys()}
+    # Map of each island to a list of individuals migrating to it (and their source island)
+    islands: dict[str, Island] = {i.path: i for i in islands_list}
+
+    migration: dict[Island, list[tuple[Individual, Island]]] = {island: [] for island in islands.keys()}
 
     for i, j, d in topology.edges(data=True):
         for k in range(d['weight']):
-            migration[i].append(heapq.heappop(islands[j].individuals))
-            migration[j].append(heapq.heappop(islands[i].individuals))
+            migration[i].append((islands[j].remove_best(), j))
+            migration[j].append((islands[i].remove_best(), i))
 
     for i in migration:
         for j in migration[i]:
             #move_file(j[0].name, j[1].path, i.path)
             islands[i].add_individual(j[0])
-

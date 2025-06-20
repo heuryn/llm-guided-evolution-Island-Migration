@@ -45,7 +45,7 @@ def clean_code_from_llm(code_from_llm):
         #return ""
 
 def get_llm_code_generator(llm_model):
-    if inference_submission is False:
+    if INFERENCE_SUBMISSION is False:
         if llm_model == LLM_MIXTRAL:
             llm_code_generator = submit_mixtral
         elif llm_model == LLM_QWEN:
@@ -589,7 +589,7 @@ def submit_gemma3(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1,
 
 
 
-def mutate_prompt(llm_model, template, hugging_face=HUGGING_FACE_BOOL):
+def mutate_prompt(llm_model, template, inference_submission=INFERENCE_SUBMISSION):
     path, filename = os.path.split(template)
     with open(template, 'r') as file:
         prompt_text = file.read()
