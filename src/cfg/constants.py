@@ -3,9 +3,13 @@ import numpy as np
 import torch
 
 #: Root directory of the repository
-ROOT_DIR = "/home/hice1/jzutty3/llm-guided-evolution"
+ROOT_DIR = "/home/hice1/hice1/aganesan44/scratch/llm-island-migration/"
+CONDA_ENV = "llmIslandsEnv"
+GLOBAL_DATA_PATH = "global_data"
+SLURM_OUTPUT_PATH = "run_job_outputs/"
+
 #: DATA_PATH absolute or relative to ExquisiteNetV2
-DATA_PATH = "./cifar10"
+DATA_PATH = os.path.join(ROOT_DIR, 'cifar10')
 #: Location where the current seed repo resides
 SOTA_ROOT = os.path.join(ROOT_DIR, 'sota/ExquisiteNetV2')
 #: Location where the network architecture for the seed resides
@@ -29,14 +33,28 @@ elif torch.cuda.is_available():
 else:
 	DEVICE = 'cpu'
 
-#LLM_MODEL = 'mixtral'
-#LLM_MODEL = 'llama3'
-#: LLM Model to use. Choices currently include ['gemini', 'mixtral', 'llama3']
-LLM_MODEL = 'gemini'
+# AVAILABLE LLMs
+# -----------
+LLM_QWEN = 'qwen25'
+LLM_MIXTRAL = 'mixtral'
+LLM_LLAMA3 = 'llama3'
+LLM_GEMMA2 = 'gemma2'
+LLM_GEMMA3 = 'gemma3'
+LLM_DEEPSEEK = 'deepseek'
+LLM_GEMINI = 'gemini'
+
+# API_KEYS
+# -----------
 try:
 	GEMINI_API_KEY = os.environ['GEMINI_API_KEY']
 except:
 	GEMINI_API_KEY = ''
+
+ISLAND_LLMS = [LLM_QWEN, LLM_MIXTRAL, LLM_LLAMA3, LLM_GEMMA2, LLM_GEMMA3, LLM_DEEPSEEK, LLM_GEMINI]
+
+MAX_ISLANDS = len(ISLAND_LLMS)
+
+GLOBAL_DATA = {}
 # SEED_PACKAGE_DIR = "./sota/ExquisiteNetV2/divine_seed_module"
 
 # Evolution Constants/Params
@@ -60,7 +78,8 @@ PROB_EOT = 0.25
 
 #: Number of generations to run for
 num_generations = 30  # Number of generations
-
+#: Number of generations between migrations
+migration_gen = 3
 #: Population size for launching optimization
 start_population_size = 32
 # start_population_size = 144   # Size of the population 124=72
@@ -93,26 +112,29 @@ LLM_GPU = 'A100-40GB|A100-80GB|H100|V100-16GB|V100-32GB|RTX6000|A40|L40S'
 #: Template script for submitting job for evaluation.
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=evaluateGene
-#SBATCH -t 8:00:00
+#SBATCH -t 8-00:00
 #SBATCH --gres=gpu:1
-#SBATCH -C "A100-40GB|A100-80GB|H100|V100-16GB|V100-32GB|RTX6000|A40|L40S"
-#SBATCH --mem-per-gpu 16G
-#SBATCH -n 12
+#SBATCH -C "{}"
+#SBATCH --mem-per-gpu 32G
+#SBATCH -n 16
 #SBATCH -N 1
+
 echo "Launching Python Evaluation"
 hostname
-
 # Load GCC version 9.2.0
 # module load gcc/13.2.0
 module load cuda
 module load anaconda3
 # Activate Conda environment
-conda activate llm_guided_env
-export LD_LIBRARY_PATH=~/.conda/envs/llm_guided_env/lib/python3.12/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
-# conda info
+conda activate {}
 
+# conda info
 # Set the TOKENIZERS_PARALLELISM environment variable if needed
 # export TOKENIZERS_PARALLELISM=false
+
+export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+export MKL_THREADING_LAYER=GNU
+export LD_LIBRARY_PATH=~/.conda/envs/llm_guided_env/lib/python3.12/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
 
 # Run Python script
 {}
@@ -121,13 +143,15 @@ export LD_LIBRARY_PATH=~/.conda/envs/llm_guided_env/lib/python3.12/site-packages
 
 #: Template script for submitting a prompt to the LLM
 LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
-#SBATCH --job-name=llm_oper
-#SBATCH -t 8:00:00
+#SBATCH --job-name={}
+#SBATCH -t 8-00:00
 #SBATCH --gres=gpu:1
 #SBATCH -C "{}"
-#SBATCH --mem-per-gpu 16G
-#SBATCH -n 12
+#SBATCH --mem-per-gpu 32G
+#SBATCH -n 16
 #SBATCH -N 1
+#SBATCH --output=run_job_outputs/evolution/slurm-%j.out
+
 echo "Launching AIsurBL"
 hostname
 
@@ -137,22 +161,51 @@ hostname
 module load cuda
 module load anaconda3
 # Activate Conda environment
-conda activate llm_guided_env
+conda activate {}
 export LD_LIBRARY_PATH=~/.conda/envs/llm_guided_env/lib/python3.12/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
 # conda info
 
+CUDA_LAUNCH_BLOCKING=1
+
 # Set the TOKENIZERS_PARALLELISM environment variable if needed
 # export TOKENIZERS_PARALLELISM=false
+export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
 # Run Python script
 {}
 """
 
 
+PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS = """#!/bin/bash
+#SBATCH --job-name=LLM_Island_{}
+#SBATCH -N1 --ntasks-per-node=16
+#SBATCH --mem-per-gpu=16G
+#SBATCH --time=03:00:00
+#SBATCH --output=run_job_outputs/islands/Report_islands-%j.out
+#SBATCH --gres=gpu:1
+#SBATCH -C intel
 
-# Misc. Non-sense
-# ---------------
+cd $SLURM_SUBMIT_DIR
+echo "launching AIsurBL"
+echo "Started on `/bin/hostname`"
 
+module load cuda/12
+module load anaconda3
+
+conda activate {}
+conda info
+
+export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+
+# Run Python script
+python islandIntegration.py {} --global_path {} --llm_model {}
+"""
+
+
+
+"""
+Misc. Non-sense
+"""
 DNA_TXT = """
 ⠀⠀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣶⣶⠶⣶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
