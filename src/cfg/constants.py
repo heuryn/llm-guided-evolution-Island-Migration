@@ -2,8 +2,8 @@ import os
 import numpy as np
 import torch
 
-#: Root directory of the repository
-ROOT_DIR = "/home/hice1/hyu462/scratch/llm-guided-evolution-Island-Migration/"
+#: Root directory of the repository (replace <username> with your actual username)
+ROOT_DIR = "/home/hice1/<username>/scratch/llm-guided-evolution-Island-Migration/"
 CONDA_ENV = "llmIslandsEnv"
 GLOBAL_DATA_PATH = "global_data"
 SLURM_OUTPUT_PATH = "run_job_outputs/"
@@ -32,6 +32,9 @@ elif torch.cuda.is_available():
 	DEVICE = 'cuda'
 else:
 	DEVICE = 'cpu'
+
+# Whether we are running on PACE-ICE (True) or ICEHAMMER (False)
+PACE_ICE = True
 
 # AVAILABLE LLMs
 # -----------
@@ -101,6 +104,9 @@ num_elites = 8
 #: Number of individuals to keep in the hall of fame across the optimization
 hof_size = 100
 
+# Maximum number of attempts to generate a new individual before giving up
+max_gen_attempts = 5
+
 
 # Job Sub Constants/Params
 # ------------------------
@@ -116,97 +122,184 @@ INFERENCE_SUBMISSION = False
 # LLM_GPU = 'A100-40GB|A100-80GB|H100|V100-16GB|V100-32GB|RTX6000|A40|L40S'
 LLM_GPU = 'H100|H200|A100-80GB|A100-40GB'
 
-#: Template script for submitting job for evaluation.
-PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
-#SBATCH --job-name=evaluateGene
-#SBATCH --time=06:00:00
-#SBATCH -N1 --ntasks-per-node=32
-#SBATCH --output=run_job_outputs/evaluation/slurm-%j.out
+#: Template script for submitting job for evaluation
+if PACE_ICE:
+	PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
+	#SBATCH --job-name=evaluateGene
+	#SBATCH --time=06:00:00
+	#SBATCH -N1 --ntasks-per-node=32
+	#SBATCH --output=run_job_outputs/evaluation/slurm-%j.out
 
-#SBATCH -G 1
-#SBATCH -C "{}"
-#SBATCH --mem-per-gpu 32G
+	#SBATCH -G 1
+	#SBATCH -C "{}"
+	#SBATCH --mem-per-gpu 80G
 
 
-echo "Launching AIsurBL"
-hostname
-# Load GCC version 9.2.0
-# module load gcc/13.2.0
-module load cuda/12
-module load anaconda3
+	echo "Launching AIsurBL"
+	hostname
+	# Load GCC version 9.2.0
+	# module load gcc/13.2.0
+	module load cuda/12
+	module load anaconda3
 
-# Activate Conda environment
-conda activate {}
+	# Activate Conda environment
+	conda activate {}
 
-# conda info
-# Set the TOKENIZERS_PARALLELISM environment variable if needed
-# export TOKENIZERS_PARALLELISM=false
+	# conda info
+	# Set the TOKENIZERS_PARALLELISM environment variable if needed
+	# export TOKENIZERS_PARALLELISM=false
 
-export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
-export MKL_THREADING_LAYER=GNU
+	export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+	export MKL_THREADING_LAYER=GNU
 
-# Run Python script
-{}
-"""
+	# Run Python script
+	{}
+	"""
+else:
+	PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
+	#SBATCH --job-name=evaluateGene
+	#SBATCH -t 0-06:00
+	#SBATCH -C "{}"
+	#SBATCH -n 32
+	#SBATCH -N 1
+	#SBATCH -G 1
+	#SBATCH --mem 80G
+	#SBATCH --output=run_job_outputs/evaluation/slurm-%j.out
 
+	echo "Launching AIsurBL"
+	hostname
+	# Load GCC version 9.2.0
+	# module load gcc/13.2.0
+	module load cuda/12
+	module load anaconda3
+
+	# Activate Conda environment
+	conda activate {}
+
+	# conda info
+	# Set the TOKENIZERS_PARALLELISM environment variable if needed
+	# export TOKENIZERS_PARALLELISM=false
+
+	export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+	export MKL_THREADING_LAYER=GNU
+
+	# Run Python script
+	{}
+	"""
 
 #: Template script for submitting a prompt to the LLM
-LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
-#SBATCH --job-name={}
-#SBATCH --time=03:00:00
-#SBATCH -N1 --ntasks-per-node=32
-#SBATCH --output=run_job_outputs/evolution/slurm-%j.out
+if PACE_ICE:
+	LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
+	#SBATCH --job-name={}
+	#SBATCH --time=03:00:00
+	#SBATCH -N1 --ntasks-per-node=32
+	#SBATCH --output=run_job_outputs/evolution/slurm-%j.out
 
-#SBATCH -G 2 
-#SBATCH -C "{}"
-#SBATCH --mem-per-gpu 80G
-
-
-echo "Launching AIsurBL"
-hostname
-
-module load cuda/12
-module load anaconda3
-# Activate Conda environment
-conda activate {}
-# conda info
-
-CUDA_LAUNCH_BLOCKING=1
-
-# Set the TOKENIZERS_PARALLELISM environment variable if needed
-# export TOKENIZERS_PARALLELISM=false
-export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
-
-# Run Python script
-{}
-"""
+	#SBATCH -G 1
+	#SBATCH -C "{}"
+	#SBATCH --mem-per-gpu 32G
 
 
-PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS = """#!/bin/bash
-#SBATCH --job-name=LLM_Island_{}
-#SBATCH -N1 --ntasks-per-node=16
-#SBATCH --mem-per-gpu=16G
-#SBATCH --time=16:00:00
-#SBATCH --output=run_job_outputs/islands/Report_islands-%j.out
-#SBATCH --gres=gpu:1
-#SBATCH -C intel
+	echo "Launching AIsurBL"
+	hostname
 
-cd $SLURM_SUBMIT_DIR
-echo "launching AIsurBL"
-echo "Started on `/bin/hostname`"
+	module load cuda/12
+	module load anaconda3
+	# Activate Conda environment
+	conda activate {}
+	# conda info
 
-module load cuda/12
-module load anaconda3
+	CUDA_LAUNCH_BLOCKING=1
 
-conda activate {}
-conda info
+	# Set the TOKENIZERS_PARALLELISM environment variable if needed
+	# export TOKENIZERS_PARALLELISM=false
+	export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
-export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+	# Run Python script
+	{}
+	"""
+else:
+	LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
+	#SBATCH --job-name={}
+	#SBATCH -t 0-03:00
+	#SBATCH -C "{}"
+	#SBATCH -n 32
+	#SBATCH -N 1
+	#SBATCH -G 1
+	#SBATCH --mem 32G
+	#SBATCH --output=run_job_outputs/evolution/slurm-%j.out
 
-# Run Python script
-python run_improved.py {} --global_path {} --llm_model {}
-"""
+	echo "Launching AIsurBL"
+	hostname
 
+	module load cuda/12
+	module load anaconda3
+	# Activate Conda environment
+	conda activate {}
+	# conda info
+
+	CUDA_LAUNCH_BLOCKING=1
+
+	# Set the TOKENIZERS_PARALLELISM environment variable if needed
+	# export TOKENIZERS_PARALLELISM=false
+	export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+
+	# Run Python script
+	{}
+	"""
+
+#: Template script for submitting an island run
+if PACE_ICE:
+	PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS = """#!/bin/bash
+	#SBATCH --job-name=LLM_Island_{}
+	#SBATCH -N1 --ntasks-per-node=32
+	#SBATCH --mem-per-gpu=32G
+	#SBATCH --time=16:00:00
+	#SBATCH --output=run_job_outputs/islands/Report_islands-%j.out
+	#SBATCH --gres=gpu:1
+	#SBATCH -C intel
+
+	cd $SLURM_SUBMIT_DIR
+	echo "launching AIsurBL"
+	echo "Started on `/bin/hostname`"
+
+	module load cuda/12
+	module load anaconda3
+
+	conda activate {}
+	conda info
+
+	export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+
+	# Run Python script
+	python run_improved.py {} --global_path {} --llm_model {}
+	"""
+else:
+	PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS = """#!/bin/bash
+	#SBATCH --job-name=LLM_Island_{}
+	#SBATCH -t 5-00:00
+	#SBATCH -C "{}"
+	#SBATCH -n 32
+	#SBATCH -N 1
+	#SBATCH -G 1
+	#SBATCH --mem 80G
+	#SBATCH --output=run_job_outputs/islands/Report_islands-%j.out
+
+	cd $SLURM_SUBMIT_DIR
+	echo "launching AIsurBL"
+	echo "Started on `/bin/hostname`"
+
+	module load cuda/12
+	module load anaconda3
+
+	conda activate {}
+	conda info
+
+	export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+
+	# Run Python script
+	python run_improved.py {} --global_path {} --llm_model {}
+	"""
 
 
 """

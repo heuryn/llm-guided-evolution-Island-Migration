@@ -12,6 +12,23 @@ from src.cfg.constants import *
 from src.utils.print_utils import box_print
 
 def submit_run(tempFile, text):
+    """
+    Bash script submission function for running a job on the cluster.
+    Used for running each LLM's island.
+
+    Parameters
+    ----------
+    tempFile : str
+        Path to the temporary file where the bash script will be saved.
+    text : str
+        The content of the bash script to be executed.
+
+    Returns
+    -------
+    job_id : str
+        The job ID returned by the cluster after submitting the script.
+        If submission fails, returns None.
+    """
     with open(tempFile, 'w') as file:
         file.write(text)
     print(f"\t‣ Bash Script Saved to {tempFile}")
@@ -101,6 +118,21 @@ def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3
 
 
 def unpackIslands(num_islands, checkpoints) -> list[Island]:
+    """
+    Unpacks islands from the checkpoints directory.
+
+    Parameters
+    ----------
+    num_islands : int
+        The number of islands to unpack.
+    checkpoints : str
+        The path to the checkpoints directory.
+
+    Returns
+    -------
+    list[Island]
+        A list of unpacked islands.
+    """
     islands = []
     global_path = os.path.join(checkpoints, "global_data")
     for i in range(num_islands):
@@ -127,6 +159,20 @@ def unpackIslands(num_islands, checkpoints) -> list[Island]:
     return islands
 
 def packIslands(islands: list[Island], gen: int):
+    """
+    Packs islands into their respective directories after migration.
+
+    Parameters
+    ----------
+    islands : list[Island]
+        A list of islands to pack.
+    gen : int
+        The current generation number.
+
+    Returns
+    -------
+    None
+    """
     for island in islands:
         island_path = island.path
         print("Packing island path" + island_path, flush=True)
@@ -144,11 +190,24 @@ def packIslands(islands: list[Island], gen: int):
         save_checkpoint(gen=gen, folder_name=island_path, global_path=None, checkpoint_data=checkpoint_data)
 
 def migrateIslands(topology, num_islands, checkpoints, gen):
-    # Load checkpoint data for every island
-    # add some individuals to other islands
-    # Save them back to checkpoints
+    """
+    Migrates individuals between islands based on the specified topology.
 
-    # array of class Island 
+    Parameters
+    ----------
+    topology : Topology
+        The graph topology defining the migration pattern.
+    num_islands : int
+        The number of islands involved in the migration.
+    checkpoints : str
+        The path to the checkpoints directory.
+    gen : int
+        The current generation number.
+
+    Returns
+    -------
+    None
+    """
     print("UNPACKING ISLANDS")
     islands = unpackIslands(num_islands, checkpoints)
     
@@ -162,6 +221,21 @@ def migrateIslands(topology, num_islands, checkpoints, gen):
 
 
 def submit_mutate_prompts(llm_model, n=5):
+    """
+    Submits a bash script to mutate prompts using the specified LLM model.
+    
+    Parameters
+    ----------
+    llm_model : str
+        The LLM model to use for mutation.
+    n : int
+        The number of templates to mutate.
+
+    Returns
+    -------
+    list prompt_job_ids
+        A list of job IDs for the submitted mutation jobs.
+    """
     prompt_job_ids = []
     templates = np.random.choice(glob.glob(f'{ROOT_DIR}/templates/FixedPrompts/*/*.txt'), n)
     file_path = './mutate_prompts_temp.sh'
@@ -189,8 +263,7 @@ def submit_mutate_prompts(llm_model, n=5):
     return prompt_job_ids
     
 
-
-
+# Island Controller Script to handle creating islands and migrating individuals between them.
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run Generation')
     # Add arguments

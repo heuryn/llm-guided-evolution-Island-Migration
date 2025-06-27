@@ -31,7 +31,7 @@ def submit_llm(txt2llm, max_new_tokens=764, top_p=0.15, temperature=0.1,
         trust_remote_code=True,
         torch_dtype=bfloat16,
         device_map='auto',
-        token="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"
+        token=""
     )
     model.eval()
     print(model.device)
@@ -39,7 +39,7 @@ def submit_llm(txt2llm, max_new_tokens=764, top_p=0.15, temperature=0.1,
     tokenizer = AutoTokenizer.from_pretrained(
         model_id,
         trust_remote_code=True,
-        use_auth_token="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"  # include this if the model requires authentication
+        use_auth_token=""  # include this if the model requires authentication
     )
 
     generate_text = transformers.pipeline(

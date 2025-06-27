@@ -19,7 +19,7 @@ def load_global_data(global_path="checkpoints", global_file=None):
 
     return global_data
 
-global_path = "/home/hice1/jwarren315/scratch/llm-island-migration/first_test/global_data/"
+global_path = "/home/hice1/<username>/scratch/llm-island-migration/first_test/global_data/"
 
 global_data = load_global_data(global_path=global_path)
 print(global_data)
