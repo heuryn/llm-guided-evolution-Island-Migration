@@ -301,7 +301,7 @@ if __name__ == "__main__":
             print("Generating Island " + curr_llm, flush=True)
             checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
             
-            job_id = submit_run(island_script, PYTHON_BASH_SCRIPT_TEMPLATE_ISLANDS.format(curr_llm, CONDA_ENV, checkpoint_path, global_path, curr_llm))
+            job_id = submit_run(island_script, ISLANDS_BASH_SCRIPT_TEMPLATE.format(curr_llm, CONDA_ENV, checkpoint_path, global_path, curr_llm))
             job_ids.append(job_id)
         
         # check island generation jobs for completion
