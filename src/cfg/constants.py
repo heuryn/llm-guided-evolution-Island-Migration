@@ -1,11 +1,11 @@
 import os
 import numpy as np
 import torch
-import src.cfg.pace_ice_scripts as pace_ice
-import src.cfg.icehammer_scripts as icehammer
+import cfg.pace_ice_scripts as pace_ice
+import cfg.icehammer_scripts as icehammer
 
 # Whether we are running on PACE-ICE (True) or ICEHAMMER (False)
-PACE_ICE = True
+PACE_ICE = False
 
 #: Root directory of the repository (replace <username> with your actual username)
 if PACE_ICE:
@@ -13,7 +13,6 @@ if PACE_ICE:
 else:
 	ROOT_DIR = icehammer.ROOT_DIR
 
-CONDA_ENV = "llmIslandsEnv"
 GLOBAL_DATA_PATH = "global_data"
 SLURM_OUTPUT_PATH = "run_job_outputs/"
 
@@ -83,20 +82,20 @@ NUM_EOT_ELITES = 4
 GENERATION = 0
 
 PROB_QC = 0.0 # Probability of running quality control checks on responses from the LLM
-PROB_EOT = 0.0 # Probability of running Evolution of Thought (EOT) on the responses from the LLM
+PROB_EOT = 0.5 # Probability of running Evolution of Thought (EOT) on the responses from the LLM
 
 #: Number of generations to run for
 num_generations = 30  # Number of generations
 
 #: Number of generations between migrations
-migration_gen = 3 # Set to 0 to disable migrations (1 island runs)
+migration_gen = 0 # Set to 0 to disable migrations (1 island runs)
 
 #: Population size for launching optimization
-start_population_size = 128
+start_population_size = 32
 
 #: Population size to utilize in each generation after optimization begins
 # population_size = 44 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover
-population_size = 32
+population_size = 16
 
 #: Probability of mating two individuals
 crossover_probability = 0.35

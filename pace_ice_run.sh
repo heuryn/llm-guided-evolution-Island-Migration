@@ -11,13 +11,8 @@ echo "launching LLM Guided Evolution"
 hostname
 # module load anaconda3/2020.07 2021.11
 module load cuda
-module load anaconda3
 export CUDA_VISIBLE_DEVICES=0
 
-conda activate llmIslandsEnv
-
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
-export LD_LIBRARY_PATH=~/.conda/envs/llmIslandsEnv/lib/python3.12/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
-conda info
 
-python run_improved.py third_test --global_path third_test/global_data --llm_model qwen25
+uv run python run_improved.py third_test --global_path third_test/global_data --llm_model qwen25

@@ -22,18 +22,27 @@ To get started with Island Migration, follow these steps:
 
 2. **Install uv**: Instructions for installing ``uv`` can be found in the [uv documentation](https://github.com/astral-sh/uv).
 
-3. **Sync Dependencies**: Sync the necessary dependencies using the ``uv sync`` command.
+3. **Initialize the virtual environment**: Simply run ``uv venv``.
+
+    ``bash
+    uv venv``
+
+4. **Sync Dependencies**: Sync the necessary dependencies using the ``uv sync`` command.
 
     ``bash
     uv sync``
 
-4. **Configure the Environment**: Set up your environment variables and configurations as needed. You can find the configuration file in:
+5. **Configure the Environment**: Set up your environment variables and configurations as needed. You can find the configuration files in:
 
-     ``src/cfg/constants.py``.
+     ``src/cfg/constants.py``
 
-5. **Configure the run script**: Edit the ``island_controller.sbatch`` script to set the working directory and desired parameters for your evolutionary run.
+     ``src/cfg/pace_ice_scripts.py``
+     
+     ``src/cfg/icehammer_scripts.py``.
 
-6. **Run the Evolution**: Execute the controller script to start the evolutionary process with island migration.
+6. **Configure the run script**: Edit the ``island_controller.sbatch`` script to set the working directory and desired parameters for your evolutionary run.
+
+7. **Run the Evolution**: Execute the controller script to start the evolutionary process with island migration.
 
     ``bash
-    sbatch island_controller.sbatch``
+    uv run sbatch island_controller.sbatch``

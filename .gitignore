@@ -11,3 +11,4 @@ tests/*/outputs
 *.out
 *.pkl
 src/island_temp_script.sh
+cifar10

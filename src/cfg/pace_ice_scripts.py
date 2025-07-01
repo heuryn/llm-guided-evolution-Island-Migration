@@ -21,12 +21,7 @@ hostname
 # Load GCC version 9.2.0
 # module load gcc/13.2.0
 module load cuda/12
-module load anaconda3
 
-# Activate Conda environment
-conda activate {}
-
-# conda info
 # Set the TOKENIZERS_PARALLELISM environment variable if needed
 # export TOKENIZERS_PARALLELISM=false
 
@@ -34,7 +29,7 @@ export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 export MKL_THREADING_LAYER=GNU
 
 # Run Python script
-{}
+uv run {}
 """
 
 #: Template script for submitting a prompt to the LLM
@@ -53,10 +48,6 @@ echo "Launching AIsurBL"
 hostname
 
 module load cuda/12
-module load anaconda3
-# Activate Conda environment
-conda activate {}
-# conda info
 
 CUDA_LAUNCH_BLOCKING=1
 
@@ -65,7 +56,7 @@ CUDA_LAUNCH_BLOCKING=1
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
 # Run Python script
-{}
+uv run {}
 """
 
 #: Template script for submitting an island run
@@ -83,13 +74,9 @@ echo "launching AIsurBL"
 echo "Started on `/bin/hostname`"
 
 module load cuda/12
-module load anaconda3
-
-conda activate {}
-conda info
 
 export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
 
 # Run Python script
-python run_improved.py {} --global_path {} --llm_model {}
+uv run python run_improved.py {} --global_path {} --llm_model {}
 """
