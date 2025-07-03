@@ -291,7 +291,7 @@ if __name__ == "__main__":
 
     global_path = os.path.join(checkpoints, GLOBAL_DATA_PATH)
     # start generation
-    for era in range(1, 1 if migration_gen == 0 else num_generations // migration_gen + 1):
+    for era in range(1, 2 if migration_gen == 0 else num_generations // migration_gen + 1):
         print("Starting era " + str(era), flush=True)
         job_ids = []
 

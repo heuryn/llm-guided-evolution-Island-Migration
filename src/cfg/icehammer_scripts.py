@@ -8,7 +8,7 @@ LLM_GPU = 'NVIDIAA100-SXM4-80GB|NVIDIAA10080GBPCIe|TeslaV100S-PCIE-32GB|TeslaV10
 #: Template script for submitting job for evaluation
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=evaluateGene
-#SBATCH -t 0-06:00
+#SBATCH -t 0-12:00
 #SBATCH -C "{}"
 #SBATCH -n 32
 #SBATCH -N 1
@@ -35,7 +35,7 @@ uv run {}
 #: Template script for submitting a prompt to the LLM
 LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name={}
-#SBATCH -t 0-03:00
+#SBATCH -t 0-05:00
 #SBATCH -C "{}"
 #SBATCH -c 16
 #SBATCH --ntasks=2
@@ -62,8 +62,7 @@ uv run {}
 #: Template script for submitting an island run
 ISLANDS_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=LLM_Island_{}
-#SBATCH -t 5-00:00
-#SBATCH -C "{}"
+#SBATCH -t 10-00:00
 #SBATCH -n 32
 #SBATCH -N 1
 #SBATCH -G 1

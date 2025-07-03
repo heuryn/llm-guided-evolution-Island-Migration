@@ -12,3 +12,4 @@ tests/*/outputs
 *.pkl
 src/island_temp_script.sh
 cifar10
+uv.lock

@@ -16,4 +16,5 @@ dependencies = [
     "torchvision",
     "transformers",
     "accelerate",
+    "matplotlib"
 ]
