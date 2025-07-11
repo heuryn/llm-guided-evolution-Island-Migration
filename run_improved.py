@@ -825,11 +825,14 @@ def save_checkpoint(gen, folder_name="checkpoints", global_path=None, checkpoint
         pickle.dump(checkpoint_data, file)
     print(f"Population data saved as {filename}")
 
+def extract_generation(filename):
+    return int(filename.split('_')[2].split('.')[0])
+
 def load_checkpoint(folder_name="checkpoints", checkpoint_file=None):
     if not os.path.exists(folder_name):
         return None, None
     if checkpoint_file is None:
-        checkpoint_files = sorted(os.listdir(folder_name), reverse=True)
+        checkpoint_files = sorted(os.listdir(folder_name), key=extract_generation, reverse=True)
         checkpoint_file = checkpoint_files[0] if checkpoint_files else None
     if checkpoint_file:
         filepath = os.path.join(folder_name, checkpoint_file)
@@ -849,7 +852,7 @@ def load_checkpoint(folder_name="checkpoints", checkpoint_file=None, global_path
     start_gen = 0
     global_data = {}
     if checkpoint_file is None:
-        checkpoint_files = sorted(os.listdir(folder_name), reverse=True)
+        checkpoint_files = sorted(os.listdir(folder_name), key=extract_generation, reverse=True)
         checkpoint_file = checkpoint_files[0] if checkpoint_files else None
     if checkpoint_file:
         filepath = os.path.join(folder_name, checkpoint_file)
