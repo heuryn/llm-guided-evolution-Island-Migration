@@ -6,7 +6,7 @@ from deap.tools import HallOfFame
 import subprocess
 import time
 import networkx as nx
-from run_improved import load_checkpoint, save_checkpoint
+from run_improved import load_checkpoint, save_checkpoint, extract_generation
 from islands import Individual, Island, Topology, migrate, generate_graph_topology
 from src.cfg.constants import *
 from src.utils.print_utils import box_print
@@ -263,6 +263,31 @@ def submit_mutate_prompts(llm_model, n=5):
     return prompt_job_ids
     
 
+def get_generation(global_path):
+    """
+    Scans the directory at global_path for checkpoint .pkl files and returns
+    the highest generation number found.
+
+    Parameters
+    ----------
+    global_path : str
+        The path to the directory containing checkpoint files.
+
+    Returns
+    -------
+    int
+        The highest generation number found, or 1 if none found.
+    """
+    if not os.path.isdir(global_path):
+        return 1
+
+    max_gen = 0
+    for fname in os.listdir(global_path):
+        gen = extract_generation(fname)
+        max_gen = max(max_gen, gen)
+
+    return max_gen if max_gen > 0 else 1
+
 # Island Controller Script to handle creating islands and migrating individuals between them.
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run Generation')
@@ -291,7 +316,9 @@ if __name__ == "__main__":
 
     global_path = os.path.join(checkpoints, GLOBAL_DATA_PATH)
     # start generation
-    for era in range(1, 2 if migration_gen == 0 else num_generations // migration_gen + 1):
+    curr_gen = get_generation(global_path)
+    start_era = curr_gen // migration_gen + 1 if migration_gen != 0 else 1
+    for era in range(start_era, 2 if migration_gen == 0 else start_era + num_generations // migration_gen):
         print("Starting era " + str(era), flush=True)
         job_ids = []
 

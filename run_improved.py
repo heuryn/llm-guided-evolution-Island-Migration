@@ -863,7 +863,7 @@ def load_checkpoint(folder_name="checkpoints", checkpoint_file=None, global_path
         start_gen = start_gen + 1
     
     if global_file is None:
-        global_files = sorted(os.listdir(global_path), reverse=True)
+        global_files = sorted(os.listdir(global_path), key=extract_generation, reverse=True)
         global_file = global_files[0] if global_files else None
     if global_file:
         filepath = os.path.join(global_path, global_file)
