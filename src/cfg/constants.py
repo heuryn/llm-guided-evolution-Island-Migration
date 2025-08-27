@@ -5,7 +5,7 @@ import cfg.pace_ice_scripts as pace_ice
 import cfg.icehammer_scripts as icehammer
 
 # Whether we are running on PACE-ICE (True) or ICEHAMMER (False)
-PACE_ICE = False
+PACE_ICE = True
 
 #: Root directory of the repository (replace <username> with your actual username)
 if PACE_ICE:
@@ -15,6 +15,8 @@ else:
 
 GLOBAL_DATA_PATH = "global_data"
 SLURM_OUTPUT_PATH = "run_job_outputs/"
+
+PROMPTS = "templates/Testing/<prompt_type>/*.txt"
 
 #: DATA_PATH absolute or relative to ExquisiteNetV2
 DATA_PATH = os.path.join(ROOT_DIR, 'cifar10')
@@ -58,7 +60,7 @@ try:
 except:
 	GEMINI_API_KEY = ''
 
-ISLAND_LLMS = [LLM_QWEN, LLM_MIXTRAL, LLM_DEEPSEEK, LLM_LLAMA3, LLM_GEMMA2, LLM_GEMMA3, LLM_GEMINI]
+ISLAND_LLMS =[LLM_LLAMA3, LLM_DEEPSEEK] # [LLM_QWEN, LLM_MIXTRAL, LLM_DEEPSEEK, LLM_LLAMA3, LLM_GEMMA2, LLM_GEMMA3, LLM_GEMINI]
 
 MAX_ISLANDS = len(ISLAND_LLMS)
 
@@ -82,16 +84,16 @@ NUM_EOT_ELITES = 4
 GENERATION = 0
 
 PROB_QC = 0.0 # Probability of running quality control checks on responses from the LLM
-PROB_EOT = 0.5 # Probability of running Evolution of Thought (EOT) on the responses from the LLM
+PROB_EOT = 0.0 # Probability of running Evolution of Thought (EOT) on the responses from the LLM
 
 #: Number of generations to run for
-num_generations = 30  # Number of generations
+num_generations = 2  # Number of generations
 
 #: Number of generations between migrations
-migration_gen = 0 # Set to 0 to disable migrations (1 island runs)
+migration_gen = 2 # Set to 0 to disable migrations (1 island runs)
 
 #: Population size for launching optimization
-start_population_size = 32
+start_population_size = 40
 
 #: Population size to utilize in each generation after optimization begins
 # population_size = 44 # with cx_prob (0.25) and mute_prob (0.7) you get about %50 successful turnover

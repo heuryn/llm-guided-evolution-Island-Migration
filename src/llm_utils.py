@@ -356,7 +356,7 @@ def submit_llama3(txt2Llama, max_new_tokens=764, top_p=0.15, temperature=0.1,
     max_new_tokens = np.random.randint(800, 1000)
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
-    model = transformers.AutoModelForImageTextToText.from_pretrained(
+    model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
         torch_dtype=float16,
@@ -549,7 +549,7 @@ def submit_gemma2(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1,
     
 
 def submit_gemma3(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1, 
-                   model_id="google/gemma-3-12b-pt", return_gen=False):
+                   model_id="google/gemma-3-12b-it", return_gen=False):
     max_new_tokens = np.random.randint(800, 1000)
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
@@ -557,11 +557,12 @@ def submit_gemma3(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1,
         model_id,
         trust_remote_code=True,
         # torch_dtype=float16,
-        device_map='auto'
+        device_map='auto',
+        token=HF_TOKEN
     )
     model.eval()
     print(model.device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id, use_auth_token=HF_TOKEN)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id, token=HF_TOKEN)
 
     generate_text = transformers.pipeline(
         model=model, tokenizer=tokenizer,

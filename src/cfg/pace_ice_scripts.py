@@ -2,7 +2,8 @@
 ROOT_DIR = "/home/hice1/<username>/scratch/llm-guided-evolution-Island-Migration/"
 
 # All GPUs available on PACE ICE (in order of performance)
-LLM_GPU = 'H200|H100|A100-80GB|A100-40GB|A40|RTX6000|V100-32GB|V100-16GB'
+# LLM_GPU = 'H200|H100|A100-80GB|A100-40GB|A40|RTX6000|V100-32GB|V100-16GB'
+LLM_GPU = 'H200|H100'
 
 #: Template script for submitting job for evaluation
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
@@ -41,7 +42,7 @@ LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 
 #SBATCH -G 1
 #SBATCH -C "{}"
-#SBATCH --mem-per-gpu 32G
+#SBATCH --mem-per-gpu 80G
 
 
 echo "Launching AIsurBL"

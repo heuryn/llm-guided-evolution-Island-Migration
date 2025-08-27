@@ -4,8 +4,8 @@ import glob
 import re
 
 # Define the directory containing the PNG files
-input_dir = 'test2/pareto_fronts'
-output_file = 'test2/pareto_fronts/output.gif'
+input_dir = '<test_dir>/pareto_fronts'
+output_file = '<test_dir>/pareto_fronts/output.gif'
 pattern = os.path.join(input_dir, 'pareto_gen_*.png')
 
 # Print all files in the directory for debugging

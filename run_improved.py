@@ -105,8 +105,8 @@ def generate_template(PROB_EOT, GEN_COUNT, TOP_N_GENES, SOTA_ROOT, SEED_NETWORK,
         template_txt = eot_template_txt.format(x, y, "{}")
         mute_type = "EoT"
     else:
-        print("\t‣ FixedPrompts")
-        prompt_templates = glob.glob(f'{ROOT_DIR}/templates/FixedPrompts/*/*.txt')
+        print("\t‣ Normal Prompts")
+        prompt_templates = glob.glob(f'{ROOT_DIR}/{PROMPTS}')
         template_path = np.random.choice(prompt_templates)
         mute_type = os.path.basename(template_path).split('.')[0]  # Assuming the file extension needs to be removed
         with open(template_path, 'r') as file:

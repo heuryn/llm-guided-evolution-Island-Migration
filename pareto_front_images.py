@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 
 # Directory where Pareto front images will be saved
-output_dir = 'test2/pareto_fronts'
+output_dir = '<test_dir>/pareto_fronts'
 os.makedirs(output_dir, exist_ok=True)
 
 # Helper function to extract fitness values from a given dataset
@@ -18,7 +18,7 @@ def extract_fitness_values(dataset):
 
 # Function to load data and extract fitness values for a given generation
 def get_fitness_values_for_generation(gen_number):
-    file_path = f'test2/global_data/global_gen_{gen_number}.pkl'
+    file_path = f'<test_dir>/global_data/global_gen_{gen_number}.pkl'
     with open(file_path, 'rb') as file:
         data = pickle.load(file)
     
@@ -41,6 +41,10 @@ def pareto_frontier(rates):
 
 # Function to create and save Pareto front plot for a generation
 def plot_pareto_front(global_data_fitness, global_data_hist_fitness, gen_number):
+    output_path = os.path.join(output_dir, f'pareto_gen_{gen_number}.png')
+    if os.path.exists(output_path):
+        print(f"Pareto front image for generation {gen_number} already exists.")
+        return
     # Combine fitness values from both datasets
     all_fitness_values = global_data_fitness + global_data_hist_fitness
     
@@ -96,7 +100,7 @@ def plot_pareto_front(global_data_fitness, global_data_hist_fitness, gen_number)
     plt.close()
 
 # Create and save Pareto front images for each generation from 1 to 27
-for gen_number in range(1, 28):
+for gen_number in range(1, 1000):
     global_data_fitness, global_data_hist_fitness = get_fitness_values_for_generation(gen_number)
     if global_data_fitness or global_data_hist_fitness:  # Only plot if there are fitness values to plot
         plot_pareto_front(global_data_fitness, global_data_hist_fitness, gen_number)
