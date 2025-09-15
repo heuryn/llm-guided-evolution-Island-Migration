@@ -11,8 +11,7 @@ def extract_fitness_values(dataset):
     fitness_values = []
     for attributes in dataset.values():
         if 'fitness' in attributes:
-            # Remove individuals with fitness (-inf, inf)
-            if attributes['fitness'] != (-float('inf'), float('inf')):
+            if attributes['fitness'] is not None and attributes['fitness'] != (-float('inf'), float('inf')):
                 fitness_values.append(attributes['fitness'])
     return fitness_values
 
@@ -23,8 +22,8 @@ def get_fitness_values_for_generation(gen_number):
         data = pickle.load(file)
     
     # Extract fitness values from GLOBAL_DATA and GLOBAL_DATA_HIST
-    global_data_fitness = extract_fitness_values(data.get('GLOBAL_DATA', {}))
-    global_data_hist_fitness = extract_fitness_values(data.get('GLOBAL_DATA_HIST', {}))
+    global_data_fitness = extract_fitness_values(data.get('GLOBAL_DATA'))
+    global_data_hist_fitness = extract_fitness_values(data.get('GLOBAL_DATA_HIST'))
 
     return global_data_fitness, global_data_hist_fitness
 
