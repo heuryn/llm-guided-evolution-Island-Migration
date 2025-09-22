@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 
 # Directory where Pareto front images will be saved
-output_dir = 'all_extreme/pareto_fronts'
+output_dir = '<test_dir>/pareto_fronts'
 os.makedirs(output_dir, exist_ok=True)
 
 # Helper function to extract fitness values from a given dataset
@@ -17,7 +17,7 @@ def extract_fitness_values(dataset):
 
 # Function to load data and extract fitness values for a given generation
 def get_fitness_values_for_generation(gen_number):
-    file_path = f'all_extreme/global_data/global_gen_{gen_number}.pkl'
+    file_path = f'<test_dir>/global_data/global_gen_{gen_number}.pkl'
     with open(file_path, 'rb') as file:
         data = pickle.load(file)
     
@@ -91,7 +91,7 @@ def plot_pareto_front(global_data_fitness, global_data_hist_fitness, gen_number)
     
     # Set x and y axis limits
     plt.xlim(0.8, 1)
-    plt.ylim(1e5, 1e7)
+    plt.ylim(1e4, 1e7)
     
     # Save the plot
     output_path = os.path.join(output_dir, f'pareto_gen_{gen_number}.png')
