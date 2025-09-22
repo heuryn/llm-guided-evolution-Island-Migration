@@ -67,7 +67,7 @@ def get_llm_code_generator(llm_model):
             llm_code_generator = submit_mixtral_hf
         elif llm_model == LLM_LLAMA3:
             llm_code_generator = submit_llama3_hf
-        elif LLM_MODEL == 'gemini':
+        elif llm_model == 'gemini':
             llm_code_generator = submit_gemini_api
         elif llm_model == LLM_GEMMA2:
             llm_code_generator = submit_gemma2_hf
@@ -360,12 +360,11 @@ def submit_llama3(txt2Llama, max_new_tokens=764, top_p=0.15, temperature=0.1,
         model_id,
         trust_remote_code=True,
         torch_dtype=float16,
-        device_map='auto',
-        token=HF_TOKEN
+        device_map='auto'
     )
     model.eval()
     print(model.device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id, token=HF_TOKEN)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
 
     generate_text = transformers.pipeline(
         model=model, tokenizer=tokenizer,
@@ -477,13 +476,11 @@ def submit_deepseek(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1,
         trust_remote_code=True,
         #torch_dtype=float16,
         device_map='auto',
-        use_auth_token=HF_TOKEN
     )
     model.eval()
     print(model.device)
     tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_id,
-        use_auth_token=HF_TOKEN)
+        model_id)
 
     generate_text = transformers.pipeline(
         model=model, tokenizer=tokenizer,
@@ -557,12 +554,11 @@ def submit_gemma3(txt2gemma, max_new_tokens=764, top_p=0.15, temperature=0.1,
         model_id,
         trust_remote_code=True,
         # torch_dtype=float16,
-        device_map='auto',
-        token=HF_TOKEN
+        device_map='auto'
     )
     model.eval()
     print(model.device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id, token=HF_TOKEN)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
 
     generate_text = transformers.pipeline(
         model=model, tokenizer=tokenizer,
