@@ -429,7 +429,7 @@ def submit_mixtral(txt2mixtral, max_new_tokens=764, top_p=0.15, temperature=0.1,
         return output_txt, generate_text
     
 def submit_qwen(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1, 
-                   model_id="Qwen/Qwen2.5-7B-Instruct", return_gen=False):
+                   model_id="Qwen/Qwen3-Coder-30B-A3B-Instruct", return_gen=False):
     max_new_tokens = np.random.randint(800, 1000)
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
@@ -467,7 +467,7 @@ def submit_qwen(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1,
         return output_txt, generate_text
     
 def submit_deepseek(txt2qwen, max_new_tokens=764, top_p=0.15, temperature=0.1, 
-                   model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B", return_gen=False):
+                   model_id="deepseek-ai/deepseek-coder-33b-instruct", return_gen=False):
     max_new_tokens = 3000
     print(f'max_new_tokens: {max_new_tokens}')
     start_time = time.time()
