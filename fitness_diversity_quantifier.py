@@ -59,6 +59,7 @@ class GenerationSummary:
     objectives: List[ObjectiveStats]
     crowding: CrowdingStats
     pareto_front_area: float | None = None
+    dominated_pareto_area: float | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -180,6 +181,95 @@ def safe_statistic(func, values: Sequence[float]) -> float | None:
         return None
 
 
+def objective_is_maximized(index: int) -> bool:
+    if index < len(FITNESS_WEIGHTS):
+        return FITNESS_WEIGHTS[index] >= 0
+    return True
+
+
+def dominates(
+    contender: Sequence[float],
+    incumbent: Sequence[float],
+    maximize_flags: Sequence[bool],
+) -> bool:
+    better_in_any = False
+    for idx, contender_value in enumerate(contender):
+        incumbent_value = incumbent[idx]
+        maximize = maximize_flags[idx]
+        if maximize:
+            if contender_value < incumbent_value:
+                return False
+            if contender_value > incumbent_value:
+                better_in_any = True
+        else:
+            if contender_value > incumbent_value:
+                return False
+            if contender_value < incumbent_value:
+                better_in_any = True
+    return better_in_any
+
+
+def extract_pareto_optimal(values: Sequence[Tuple[float, ...]]) -> List[Tuple[float, ...]]:
+    if not values:
+        return []
+    num_objectives = len(values[0])
+    maximize_flags = [objective_is_maximized(idx) for idx in range(num_objectives)]
+    pareto_front: List[Tuple[float, ...]] = []
+    for candidate in values:
+        if len(candidate) != num_objectives:
+            continue
+        dominated = False
+        for other in values:
+            if other is candidate:
+                continue
+            if len(other) != num_objectives:
+                continue
+            if dominates(other, candidate, maximize_flags):
+                dominated = True
+                break
+        if not dominated:
+            pareto_front.append(candidate)
+    return pareto_front
+
+
+def get_clamped_pareto_front(
+    values: Sequence[Tuple[float, ...]],
+    max_accuracy: float = 1.0,
+) -> Tuple[List[Tuple[float, float]], bool, bool]:
+    pareto_candidates = extract_pareto_optimal(values)
+    pareto_front = compute_two_objective_pareto_front(pareto_candidates)
+    maximize_accuracy = not FITNESS_WEIGHTS or FITNESS_WEIGHTS[0] >= 0
+    minimize_parameters = len(FITNESS_WEIGHTS) < 2 or FITNESS_WEIGHTS[1] <= 0
+
+    if not pareto_front:
+        return [], maximize_accuracy, minimize_parameters
+
+    clamped_front: List[Tuple[float, float]] = []
+    for accuracy, parameters in pareto_front:
+        if not (math.isfinite(accuracy) and math.isfinite(parameters)):
+            continue
+        clamped_accuracy = max(0.0, min(max_accuracy, accuracy))
+        clamped_front.append((clamped_accuracy, parameters))
+
+    if not clamped_front:
+        return [], maximize_accuracy, minimize_parameters
+
+    deduped_front: List[Tuple[float, float]] = []
+    for accuracy, parameters in clamped_front:
+        if not deduped_front:
+            deduped_front.append((accuracy, parameters))
+            continue
+        prev_accuracy, prev_parameters = deduped_front[-1]
+        if math.isclose(accuracy, prev_accuracy):
+            better = parameters < prev_parameters if minimize_parameters else parameters > prev_parameters
+            if better:
+                deduped_front[-1] = (accuracy, parameters)
+        else:
+            deduped_front.append((accuracy, parameters))
+
+    return deduped_front, maximize_accuracy, minimize_parameters
+
+
 def compute_two_objective_pareto_front(values: Sequence[Tuple[float, ...]]) -> List[Tuple[float, float]]:
     """
     Compute the Pareto front using the first two objectives (accuracy, parameters).
@@ -239,35 +329,9 @@ def compute_pareto_front_area(
     Integrate the Pareto front (accuracy vs. parameters) using the trapezoidal rule.
     Returns None when fewer than one valid point exists, or 0.0 for a single point.
     """
-    pareto_front = compute_two_objective_pareto_front(values)
-    if not pareto_front:
+    deduped_front, maximize_accuracy, _ = get_clamped_pareto_front(values, max_accuracy)
+    if not deduped_front:
         return None
-
-    maximize_accuracy = not FITNESS_WEIGHTS or FITNESS_WEIGHTS[0] >= 0
-    minimize_parameters = len(FITNESS_WEIGHTS) < 2 or FITNESS_WEIGHTS[1] <= 0
-
-    clamped_front: List[Tuple[float, float]] = []
-    for accuracy, parameters in pareto_front:
-        if not (math.isfinite(accuracy) and math.isfinite(parameters)):
-            continue
-        clamped_accuracy = max(0.0, min(max_accuracy, accuracy))
-        clamped_front.append((clamped_accuracy, parameters))
-
-    if not clamped_front:
-        return None
-
-    deduped_front: List[Tuple[float, float]] = []
-    for accuracy, parameters in clamped_front:
-        if not deduped_front:
-            deduped_front.append((accuracy, parameters))
-            continue
-        prev_accuracy, prev_parameters = deduped_front[-1]
-        if math.isclose(accuracy, prev_accuracy):
-            better = parameters < prev_parameters if minimize_parameters else parameters > prev_parameters
-            if better:
-                deduped_front[-1] = (accuracy, parameters)
-        else:
-            deduped_front.append((accuracy, parameters))
 
     if maximize_accuracy and deduped_front[-1][0] < max_accuracy:
         deduped_front.append((max_accuracy, deduped_front[-1][1]))
@@ -282,6 +346,58 @@ def compute_pareto_front_area(
         area += abs(width) * (prev_parameters + parameters) / 2.0
         prev_accuracy, prev_parameters = accuracy, parameters
     return area
+
+
+def compute_dominated_pareto_area(
+    values: Sequence[Tuple[float, ...]],
+    max_accuracy: float = 1.0,
+) -> float | None:
+    deduped_front, maximize_accuracy, minimize_parameters = get_clamped_pareto_front(values, max_accuracy)
+    if not deduped_front:
+        return None
+
+    if minimize_parameters:
+        reference_parameters = max(parameters for _, parameters in deduped_front)
+    else:
+        reference_parameters = min(parameters for _, parameters in deduped_front)
+
+    best_parameters = reference_parameters
+    dominated_area = 0.0
+
+    if maximize_accuracy:
+        prev_accuracy = max_accuracy
+        for accuracy, parameters in deduped_front:
+            width = prev_accuracy - accuracy
+            if width > 0:
+                height = reference_parameters - best_parameters if minimize_parameters else best_parameters - reference_parameters
+                dominated_area += max(0.0, height) * width
+            if minimize_parameters:
+                best_parameters = min(best_parameters, parameters)
+            else:
+                best_parameters = max(best_parameters, parameters)
+            prev_accuracy = accuracy
+        width = prev_accuracy - 0.0
+        if width > 0:
+            height = reference_parameters - best_parameters if minimize_parameters else best_parameters - reference_parameters
+            dominated_area += max(0.0, height) * width
+    else:
+        prev_accuracy = 0.0
+        for accuracy, parameters in deduped_front:
+            width = accuracy - prev_accuracy
+            if width > 0:
+                height = reference_parameters - best_parameters if minimize_parameters else best_parameters - reference_parameters
+                dominated_area += max(0.0, height) * width
+            if minimize_parameters:
+                best_parameters = min(best_parameters, parameters)
+            else:
+                best_parameters = max(best_parameters, parameters)
+            prev_accuracy = accuracy
+        width = max_accuracy - prev_accuracy
+        if width > 0:
+            height = reference_parameters - best_parameters if minimize_parameters else best_parameters - reference_parameters
+            dominated_area += max(0.0, height) * width
+
+    return dominated_area
 
 
 def ensure_creator_classes() -> None:
@@ -360,6 +476,9 @@ def summarize_generation(
     pareto_area = compute_pareto_front_area(combined_values)
     if pareto_area is not None:
         print(f"[DEBUG] Generation {generation} Pareto front area: {pareto_area}")
+    dominated_area = compute_dominated_pareto_area(combined_values)
+    if dominated_area is not None:
+        print(f"[DEBUG] Generation {generation} dominated Pareto area: {dominated_area}")
     return GenerationSummary(
         generation=generation,
         file_path=file_path,
@@ -369,6 +488,7 @@ def summarize_generation(
         objectives=objective_stats,
         crowding=crowding_stats,
         pareto_front_area=pareto_area,
+        dominated_pareto_area=dominated_area,
     )
 
 
@@ -406,6 +526,7 @@ def print_summary_table(summaries: Sequence[GenerationSummary]) -> None:
         "Valid",
         "Invalid",
         "Pareto_Area",
+        "Dom_Pareto_Area",
     ]
     for idx in range(max_objectives):
         header_cells.extend(
@@ -439,6 +560,7 @@ def print_summary_table(summaries: Sequence[GenerationSummary]) -> None:
             str(summary.valid_entries),
             str(summary.invalid_entries),
             format_float(summary.pareto_front_area),
+            format_float(summary.dominated_pareto_area),
         ]
         for idx in range(max_objectives):
             stats = summary.objectives[idx] if idx < len(summary.objectives) else ObjectiveStats()
@@ -478,6 +600,7 @@ def write_csv(summaries: Sequence[GenerationSummary], destination: Path) -> None
         "valid_entries",
         "invalid_entries",
         "pareto_front_area",
+        "dominated_pareto_area",
     ]
     for idx in range(max_objectives):
         fieldnames.extend(
@@ -514,6 +637,7 @@ def write_csv(summaries: Sequence[GenerationSummary], destination: Path) -> None
                 "valid_entries": summary.valid_entries,
                 "invalid_entries": summary.invalid_entries,
                 "pareto_front_area": summary.pareto_front_area,
+                "dominated_pareto_area": summary.dominated_pareto_area,
                 "crowding_total": summary.crowding.count,
                 "crowding_infinite": summary.crowding.infinite_count,
                 "crowding_min": summary.crowding.minimum,
