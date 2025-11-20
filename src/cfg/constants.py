@@ -1,11 +1,14 @@
 import os
 import numpy as np
 import torch
-import cfg.pace_ice_scripts as pace_ice
-import cfg.icehammer_scripts as icehammer
+from . import pace_ice_scripts as pace_ice
+from . import icehammer_scripts as icehammer
 
 # Whether we are running on PACE-ICE (True) or ICEHAMMER (False)
 PACE_ICE = True
+
+# Temp token
+HF_TOKEN = "hf_asudhfociwansdzovfvuawoine"
 
 #: Root directory of the repository (replace <username> with your actual username)
 if PACE_ICE:
@@ -16,7 +19,7 @@ else:
 GLOBAL_DATA_PATH = "global_data"
 SLURM_OUTPUT_PATH = "run_job_outputs/"
 
-PROMPTS = "templates/Testing/<prompt_type>/*.txt"
+PROMPTS = "templates/Testing/Focused/*.txt"
 
 #: DATA_PATH absolute or relative to ExquisiteNetV2
 DATA_PATH = os.path.join(ROOT_DIR, 'cifar10')
@@ -46,12 +49,31 @@ else:
 # AVAILABLE LLMs
 # -----------
 LLM_QWEN = 'qwen25'
+LLM_QWEN_C = 'qwen3_c'
 LLM_MIXTRAL = 'mixtral'
 LLM_LLAMA3 = 'llama3'
 LLM_GEMMA2 = 'gemma2'
 LLM_GEMMA3 = 'gemma3'
 LLM_DEEPSEEK = 'deepseek'
+LLM_DEEPSEEK_C = "deepseek_c"
 LLM_GEMINI = 'gemini'
+
+# LLM INFERENCE SERVER CONSTS
+# -----------
+
+# true if we are using inference servers
+INFERENCE_SERVER = False
+LLM_ROOT_PATH = "/storage/ice-shared/vip-vvk/llm_storage/"
+LLM_PATHS = {
+	LLM_QWEN: "Qwen/Qwen2.5-72B-Instruct",
+	LLM_LLAMA3: "meta-llama/Llama-3.3-70B-Instruct/",
+	LLM_DEEPSEEK: "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+	LLM_MIXTRAL: "mistralai/Mixtral-8x7B-Instruct-v0.1",
+	LLM_QWEN_C: "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+	LLM_DEEPSEEK_C: "deepseek-ai/deepseek-coder-33b-instruct",
+	LLM_GEMMA2: "google/gemma-2-27b-it",
+	LLM_GEMMA3: "google/gemma-3-12b-it"
+}
 
 # API_KEYS
 # -----------
@@ -60,12 +82,16 @@ try:
 except:
 	GEMINI_API_KEY = ''
 
-ISLAND_LLMS =[LLM_LLAMA3, LLM_DEEPSEEK] # [LLM_QWEN, LLM_MIXTRAL, LLM_DEEPSEEK, LLM_LLAMA3, LLM_GEMMA2, LLM_GEMMA3, LLM_GEMINI]
+ISLAND_LLMS =[LLM_DEEPSEEK_C, LLM_QWEN_C] # [LLM_QWEN, LLM_MIXTRAL, LLM_DEEPSEEK, LLM_LLAMA3, LLM_GEMMA2, LLM_GEMMA3, LLM_GEMINI]
 
 MAX_ISLANDS = len(ISLAND_LLMS)
 
 GLOBAL_DATA = {}
 # SEED_PACKAGE_DIR = "./sota/ExquisiteNetV2/divine_seed_module"
+
+# MODEL_PATH = "/storage/ice-shared/vip-vvk/llm_storage/meta-llama/Llama-3.3-70B-Instruct/"
+PORT=8137
+HOSTNAME_DIR = os.path.join(ROOT_DIR, "hostname.log")
 
 # Evolution Constants/Params
 # --------------------------
@@ -146,6 +172,12 @@ if PACE_ICE:
 	ISLANDS_BASH_SCRIPT_TEMPLATE = pace_ice.ISLANDS_BASH_SCRIPT_TEMPLATE
 else:
 	ISLANDS_BASH_SCRIPT_TEMPLATE = icehammer.ISLANDS_BASH_SCRIPT_TEMPLATE
+
+if PACE_ICE:
+	LLM_INFERENCE_SERVER_TEMPLATE = pace_ice.LLM_INFERENCE_SERVER_TEMPLATE
+else:
+	# TODO Make icehammer script
+	LLM_INFERENCE_SERVER_TEMPLATE = None
 
 
 """

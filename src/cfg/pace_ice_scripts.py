@@ -1,9 +1,37 @@
 # ROOT DIR in PACE ICE, change <username> to your actual username
-ROOT_DIR = "/home/hice1/<username>/scratch/llm-guided-evolution-Island-Migration/"
+ROOT_DIR = "/home/hice1/aganesan44/scratch/llm-guided-evolution-Island-Migration/"
 
 # All GPUs available on PACE ICE (in order of performance)
 # LLM_GPU = 'H200|H100|A100-80GB|A100-40GB|A40|RTX6000|V100-32GB|V100-16GB'
 LLM_GPU = 'H200|H100'
+
+#: Template script for starting an LLM inference server
+LLM_INFERENCE_SERVER_TEMPLATE = """#!/bin/bash
+#SBATCH --job-name=server
+#SBATCH --nodes=1
+
+echo "launching LLM Server"
+
+hostname
+
+module load cuda
+module load uv
+
+# Make sure CUDA can see all GPUs
+export CUDA_VISIBLE_DEVICES=0,1
+
+export SERVER_HOSTNAME=$(hostname)
+
+HOSTNAME_FILE=$(pwd)"/hostname.log"
+
+echo "Writing server hostname '$SERVER_HOSTNAME' to file: $HOSTNAME_FILE"
+echo "$SERVER_HOSTNAME" >> "$HOSTNAME_FILE"
+echo "Starting LLM server on host: $SERVER_HOSTNAME"
+
+uv run python server.py --host $SERVER_HOSTNAME --port {} --workers 1 --model_path {}
+
+echo "Started LLM Server"
+"""
 
 #: Template script for submitting job for evaluation
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
