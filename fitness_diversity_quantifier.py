@@ -72,6 +72,8 @@ class GenerationSummary:
     local_density: LocalDensityStats | None = None
     perf: LocalDensityStats | None = None
     combined: LocalDensityStats | None = None
+    pareto_front_area: float | None = None
+    dominated_pareto_area: float | None = None
 
 
 # === performance tuning constants ===
