@@ -220,7 +220,7 @@ def migrateIslands(topology, num_islands, checkpoints, gen):
 
 
 
-def submit_mutate_prompts(llm_model, n=5):
+def submit_mutate_prompts(llm_model, n=3):
     """
     Submits a bash script to mutate prompts using the specified LLM model.
     
@@ -237,7 +237,7 @@ def submit_mutate_prompts(llm_model, n=5):
         A list of job IDs for the submitted mutation jobs.
     """
     prompt_job_ids = []
-    templates = np.random.choice(glob.glob(f'{ROOT_DIR}/templates/FixedPrompts/*/*.txt'), n)
+    templates = np.random.choice(glob.glob(f'{ROOT_DIR}/{TEST_PROMPTS}'), n)
     file_path = './mutate_prompts_temp.sh'
     for i, template in enumerate(templates):
         python_runline = f"python src/llm_prompt_mutation.py --llm_model {llm_model} --template {template}"
@@ -345,7 +345,7 @@ if __name__ == "__main__":
         '''
         # mutate prompts
         print("Mutating Prompts")
-        prompt_job_ids = submit_mutate_prompts(LLM_MIXTRAL)
+        prompt_job_ids = submit_mutate_prompts(PROMPT_LLM)
         done = True
         for i in range(len(prompt_job_ids)):
             done = check4job_completion(prompt_job_ids[i])
