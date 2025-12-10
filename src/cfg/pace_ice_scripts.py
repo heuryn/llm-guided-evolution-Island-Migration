@@ -1,5 +1,5 @@
 # ROOT DIR in PACE ICE, change <username> to your actual username
-ROOT_DIR = "/home/hice1/aganesan44/scratch/llm-guided-evolution-Island-Migration/"
+ROOT_DIR = "/home/hice1/<username>/scratch/llm-guided-evolution-Island-Migration/"
 
 # All GPUs available on PACE ICE (in order of performance)
 # LLM_GPU = 'H200|H100|A100-80GB|A100-40GB|A40|RTX6000|V100-32GB|V100-16GB'

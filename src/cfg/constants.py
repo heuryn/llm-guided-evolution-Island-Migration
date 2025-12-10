@@ -7,9 +7,6 @@ from . import icehammer_scripts as icehammer
 # Whether we are running on PACE-ICE (True) or ICEHAMMER (False)
 PACE_ICE = True
 
-# Temp token
-HF_TOKEN = "hf_asudhfociwansdzovfvuawoine"
-
 #: Root directory of the repository (replace <username> with your actual username)
 if PACE_ICE:
 	ROOT_DIR = pace_ice.ROOT_DIR
