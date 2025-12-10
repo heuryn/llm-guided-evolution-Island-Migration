@@ -67,50 +67,6 @@ def check_contents_for_error(contents):
     else:
         return None
 
-def check_inference_server_setup(job_id, check_interval=60, timeout=3600*30):
-    """
-    Checks the output of an inference job for any signs of error.
-
-    Parameters:
-    contents (str): output of an inference job to check for error
-
-    Returns:
-    bool: True if job completed successfully, False if error, None if neither.  
-    """
-    def check_inference_server_error(contents):
-        # Check for error indicators in the file
-        if "traceback" in contents.lower() or "slurmstepd: error" in contents.lower():
-            print("\t☠ Error Found LLM Inference Server.", flush=True)
-            return False
-        elif "Uvicorn running on".lower() in contents.lower():
-            print("\t☑ LLM Inference Server Job Completed Successfully.", flush=True)
-            return True
-        else:
-            return None
-
-    start_time = time.time()
-    output_file = f'slurm-{job_id}.out'
-
-    while True:
-        # Check if the timeout is reached
-        if time.time() - start_time > timeout:
-            print("Timeout reached while waiting for job completion.")
-            return False
-
-        # Check if the output file exists
-        if os.path.exists(output_file):
-            with open(output_file, 'r') as file:
-                contents = file.read()
-                state = check_inference_server_error(contents)
-                if state is None:
-                    pass
-                else:
-                    return state
-
-        # Wait for some time before checking again
-        time.sleep(check_interval)
-        print(f'\t‣ Waiting on LLM Inference Server job: {job_id} Time: {round(time.time() - start_time)}s Path: {output_file}', flush=True)
-
 def check4job_completion(job_id, local_output=None, check_interval=60, timeout=3600*30):
     """
     Check for the completion of a job by searching for its output file and scanning for errors.
@@ -359,75 +315,53 @@ if __name__ == "__main__":
     topology = generate_graph_topology(islands_list, Topology.FULL)
 
     global_path = os.path.join(checkpoints, GLOBAL_DATA_PATH)
+    # start generation
+    curr_gen = get_generation(global_path)
+    start_era = curr_gen // migration_gen + 1 if migration_gen != 0 else 1
+    for era in range(start_era, 2 if migration_gen == 0 else start_era + num_generations // migration_gen):
+        print("Starting era " + str(era), flush=True)
+        job_ids = []
 
-    # initialize the inference servers per island
-    # note: better to start the servers in separate jobs before main loop
-    # so main loop doesn't time out waiting for servers to land on nodes
-
-    # llm_server_job_ids = []
-    # for i in range(num_islands):
-    #     curr_llm = ISLAND_LLMS[i]
-    #     print(f"Starting inference server for {curr_llm} stored at {LLM_ROOT_PATH + LLM_PATHS[curr_llm]}")
-    #     job_id = submit_run(island_script, LLM_INFERENCE_SERVER_TEMPLATE.format(PORT, LLM_ROOT_PATH + LLM_PATHS[curr_llm]))
-    #     llm_server_job_ids.append(job_id)
-    
-    # check LLM inference server jobs for completion
-    done = True
-    # for i in range(len(llm_server_job_ids)):
-    #     done = check_inference_server_setup(llm_server_job_ids[i])
-    #     if not done:
-    #         break
-    
-    if not done:
-        print("Error occured in LLM Server Setup")
-    else:
-        # start generation
-        curr_gen = get_generation(global_path)
-        start_era = curr_gen // migration_gen + 1 if migration_gen != 0 else 1
-        for era in range(start_era, 2 if migration_gen == 0 else start_era + num_generations // migration_gen):
-            print("Starting era " + str(era), flush=True)
-            job_ids = []
-
-            # submit island generation jobs
-            for i in range(num_islands):
-                curr_llm = ISLAND_LLMS[i]
-                print("Generating Island " + curr_llm, flush=True)
-                checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
-                
-                job_id = submit_run(island_script, ISLANDS_BASH_SCRIPT_TEMPLATE.format(curr_llm, checkpoint_path, global_path, curr_llm))
-                job_ids.append(job_id)
+        # submit island generation jobs
+        for i in range(num_islands):
+            curr_llm = ISLAND_LLMS[i]
+            print("Generating Island " + curr_llm, flush=True)
+            checkpoint_path = os.path.join(checkpoints, "island_" + curr_llm)
             
-            # check island generation jobs for completion
-            done = True
-            for i in range(len(job_ids)):
-                done = check4job_completion(job_ids[i])
-                if not done:
-                    break
-            
-            if not done:
-                print("Error occured in loop, job not done")
-                break
-
-            '''
-            # mutate prompts
-            print("Mutating Prompts")
-            prompt_job_ids = submit_mutate_prompts(LLM_MIXTRAL)
-            done = True
-            for i in range(len(prompt_job_ids)):
-                done = check4job_completion(prompt_job_ids[i])
-                if not done:
-                    break
-
-            if not done:
-                print("Error occured in loop, job not done")
-                break
-            '''
-
-            # migrate individuals between islands
-            if migration_gen != 0:
-                print("Starting island migration on era " + str(era), flush=True)
-                migrateIslands(topology, num_islands, checkpoints, era * migration_gen)
-
-            print("Finished era " + str(era), flush=True)
+            job_id = submit_run(island_script, ISLANDS_BASH_SCRIPT_TEMPLATE.format(curr_llm, checkpoint_path, global_path, curr_llm))
+            job_ids.append(job_id)
         
-        print("Finished evolutionary loop")
+        # check island generation jobs for completion
+        done = True
+        for i in range(len(job_ids)):
+            done = check4job_completion(job_ids[i])
+            if not done:
+                break
+        
+        if not done:
+            print("Error occured in loop, job not done")
+            break
+
+        '''
+        # mutate prompts
+        print("Mutating Prompts")
+        prompt_job_ids = submit_mutate_prompts(LLM_MIXTRAL)
+        done = True
+        for i in range(len(prompt_job_ids)):
+            done = check4job_completion(prompt_job_ids[i])
+            if not done:
+                break
+
+        if not done:
+            print("Error occured in loop, job not done")
+            break
+        '''
+
+        # migrate individuals between islands
+        if migration_gen != 0:
+            print("Starting island migration on era " + str(era), flush=True)
+            migrateIslands(topology, num_islands, checkpoints, era * migration_gen)
+
+        print("Finished era " + str(era), flush=True)
+    
+    print("Finished evolutionary loop")
