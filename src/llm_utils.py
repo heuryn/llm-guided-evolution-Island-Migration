@@ -352,18 +352,18 @@ def submit_local(prompt, llm_model, max_new_tokens = 3000, top_p=0.15, temperatu
     if llm_model not in LLM_PATHS:
         llm_model = LLM_LLAMA3 # Default Model
     
-    model_id = LLM_PATHS[llm_model]
+    model_path = LLM_ROOT_PATH + LLM_PATHS[llm_model]
     # max_new_tokens = np.random.randint(800, 1000)
     start_time = time.time()
     model = transformers.AutoModelForCausalLM.from_pretrained(
-        model_id,
+        model_path,
         trust_remote_code=True,
         torch_dtype=bfloat16,
         device_map='auto'
     )
     model.eval()
     print(model.device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
 
     generate_text = transformers.pipeline(
         model=model, tokenizer=tokenizer,

@@ -68,12 +68,15 @@ uv run {}
 """
 
 #: Template script for submitting a prompt to the LLM
-LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
+LLM_LOCAL_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name={}
 #SBATCH --time=03:00:00
 #SBATCH -N1 --ntasks-per-node=32
 #SBATCH --output=run_job_outputs/evolution/slurm-%j.out
 
+#SBATCH -G 1
+#SBATCH -C "{}"
+#SBATCH --mem-per-gpu 80G
 
 echo "Launching AIsurBL"
 hostname
@@ -95,7 +98,6 @@ LLM_SERVER_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name={}
 #SBATCH --time=03:00:00
 #SBATCH --output=run_job_outputs/evolution/slurm-%j.out
-
 
 echo "Launching AIsurBL"
 hostname
