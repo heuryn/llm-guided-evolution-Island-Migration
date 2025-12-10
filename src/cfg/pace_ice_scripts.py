@@ -8,7 +8,13 @@ LLM_GPU = 'H200|H100'
 #: Template script for starting an LLM inference server
 LLM_INFERENCE_SERVER_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=server
+#SBATCH -t 8:00:00
 #SBATCH --nodes=1
+#SBATCH -G 2
+#SBATCH -C "A100-80GB|H100|H200"
+#SBATCH --mem 160G
+#SBATCH -c 16
+#SBATCH --output=run_job_outputs/servers/slurm-%j.out
 
 echo "launching LLM Server"
 
@@ -68,9 +74,27 @@ LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH -N1 --ntasks-per-node=32
 #SBATCH --output=run_job_outputs/evolution/slurm-%j.out
 
-#SBATCH -G 1
-#SBATCH -C "{}"
-#SBATCH --mem-per-gpu 80G
+
+echo "Launching AIsurBL"
+hostname
+
+module load cuda/12
+
+CUDA_LAUNCH_BLOCKING=1
+
+# Set the TOKENIZERS_PARALLELISM environment variable if needed
+# export TOKENIZERS_PARALLELISM=false
+export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+
+# Run Python script
+uv run {}
+"""
+
+#: Template script for submitting a prompt to the LLM Inference Server
+LLM_SERVER_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
+#SBATCH --job-name={}
+#SBATCH --time=03:00:00
+#SBATCH --output=run_job_outputs/evolution/slurm-%j.out
 
 
 echo "Launching AIsurBL"
@@ -91,12 +115,8 @@ uv run {}
 #: Template script for submitting an island run
 ISLANDS_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=LLM_Island_{}
-#SBATCH -N1 --ntasks-per-node=32
-#SBATCH --mem-per-gpu=32G
 #SBATCH --time=16:00:00
 #SBATCH --output=run_job_outputs/islands/Report_islands-%j.out
-#SBATCH --gres=gpu:1
-#SBATCH -C intel
 
 cd $SLURM_SUBMIT_DIR
 echo "launching AIsurBL"

@@ -32,18 +32,16 @@ class LLMModel:
                     print(f"Loading model at {MODEL_PATH} for the first time")
                     cls._instance = super(LLMModel, cls).__new__(cls)
                     cls._instance._initialize(MODEL_PATH)
-                    print('I created my instance')
-                    print(dir(cls._instance))
+                    # print('Instance Created')
+                    # print(dir(cls._instance))
                 else:
                     print("Model Path is None: " + MODEL_PATH)
         return cls._instance
     
     def _initialize(self, model_path):
-        print("initializing")
+        print("Initializing Model")
         # TODO figure out how to better handle the initialization (i.e. mixtral dies because it doesn't have attention)
         # TODO find out why when this dies the code around it continues i.e. a model is returned to generate_text, but I never see the print out of "I created my instance"
-
-        # model_path = "Qwen/Qwen2.5-72B-Instruct" # meta-llama/Llama-3.3-70B-Instruct/" # "Qwen/Qwen3-Coder-30B-A3B-Instruct"
 
         print("Model Path: " + model_path)
         self.model = transformers.AutoModelForCausalLM.from_pretrained(
@@ -54,10 +52,10 @@ class LLMModel:
             # attn_implementation="sdpa" # faster inference
         ).eval()
         
-        print("model loaded")
+        print("Initialized Model")
 
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
-        print("tokenizer created")
+        print("Initialized Tokenizer")
         
         # for batching, need to set pad tokens
         if self.tokenizer.pad_token is None:
@@ -77,13 +75,13 @@ class LLMModel:
             do_sample=True,
             batch_size=BATCH_SIZE # for batch support
         )
-        print("pipeline created")
+        print("Initialized Pipeline")
         
         self.request_queue = asyncio.Queue() # queue for holding requests to process
         self.batch_task = None # current task
         self.batch_lock = asyncio.Lock() # lock for
         self.is_processing = False # current state
-        print("ready to go")
+        print("Server Ready for Inference")
     
     async def start_batch_processor(self):
         """Start the batch processor if it's not already running"""
@@ -181,9 +179,9 @@ class LLMModel:
         future = asyncio.Future()
         
         # put in queue
-        print('Hey I am about to access the request queue attribute')
+        # print('Accessing Request Queue')
         await self.request_queue.put((request_dict, future))
-        print('No problem, I got it')
+        print('Request Added to Queue')
         
         # start processing batches if not already started
         await self.start_batch_processor()
@@ -217,7 +215,7 @@ async def generate_text(request: LLMRequest):
         
         # Get the model instance
         model = LLMModel()
-        print(dir(model))
+        # print(dir(model))
         
         # Submit to the batch processor and wait for result
         start_time = time.time()
