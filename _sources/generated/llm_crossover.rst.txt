@@ -17,7 +17,6 @@
       retrieve_base_code
       split_file
       str2bool
-      submit_mixtral
       submit_mixtral_hf
       write_augmented_code
    
