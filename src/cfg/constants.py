@@ -19,7 +19,7 @@ else:
 GLOBAL_DATA_PATH = "global_data"
 SLURM_OUTPUT_PATH = "run_job_outputs/"
 
-PROMPTS = "templates/Testing/Focused/*.txt"
+PROMPTS = "templates/Testing/<prompt_type>/*.txt"
 
 #: DATA_PATH absolute or relative to ExquisiteNetV2
 DATA_PATH = os.path.join(ROOT_DIR, 'cifar10')
@@ -82,14 +82,13 @@ try:
 except:
 	GEMINI_API_KEY = ''
 
-ISLAND_LLMS =[LLM_DEEPSEEK_C, LLM_QWEN_C] # [LLM_QWEN, LLM_MIXTRAL, LLM_DEEPSEEK, LLM_LLAMA3, LLM_GEMMA2, LLM_GEMMA3, LLM_GEMINI]
+ISLAND_LLMS =[LLM_LLAMA3, LLM_DEEPSEEK] # [LLM_QWEN, LLM_QWEN_C, LLM_MIXTRAL, LLM_DEEPSEEK, LLM_DEEPSEEK_C, LLM_LLAMA3, LLM_GEMMA2, LLM_GEMMA3, LLM_GEMINI]
 
 MAX_ISLANDS = len(ISLAND_LLMS)
 
 GLOBAL_DATA = {}
 # SEED_PACKAGE_DIR = "./sota/ExquisiteNetV2/divine_seed_module"
 
-# MODEL_PATH = "/storage/ice-shared/vip-vvk/llm_storage/meta-llama/Llama-3.3-70B-Instruct/"
 PORT=8137
 HOSTNAME_DIR = os.path.join(ROOT_DIR, "hostname.log")
 
@@ -176,7 +175,7 @@ else:
 if PACE_ICE:
 	LLM_INFERENCE_SERVER_TEMPLATE = pace_ice.LLM_INFERENCE_SERVER_TEMPLATE
 else:
-	# TODO Make icehammer script
+	# TODO: Make icehammer script
 	LLM_INFERENCE_SERVER_TEMPLATE = None
 
 

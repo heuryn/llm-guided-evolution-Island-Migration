@@ -361,6 +361,9 @@ if __name__ == "__main__":
     global_path = os.path.join(checkpoints, GLOBAL_DATA_PATH)
 
     # initialize the inference servers per island
+    # note: better to start the servers in separate jobs before main loop
+    # so main loop doesn't time out waiting for servers to land on nodes
+
     # llm_server_job_ids = []
     # for i in range(num_islands):
     #     curr_llm = ISLAND_LLMS[i]
