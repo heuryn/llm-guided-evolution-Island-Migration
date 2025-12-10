@@ -633,18 +633,18 @@
     <span class="k">if</span> <span class="n">llm_model</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">LLM_PATHS</span><span class="p">:</span>
         <span class="n">llm_model</span> <span class="o">=</span> <span class="n">LLM_LLAMA3</span> <span class="c1"># Default Model</span>
     
-    <span class="n">model_id</span> <span class="o">=</span> <span class="n">LLM_PATHS</span><span class="p">[</span><span class="n">llm_model</span><span class="p">]</span>
+    <span class="n">model_path</span> <span class="o">=</span> <span class="n">LLM_ROOT_PATH</span> <span class="o">+</span> <span class="n">LLM_PATHS</span><span class="p">[</span><span class="n">llm_model</span><span class="p">]</span>
     <span class="c1"># max_new_tokens = np.random.randint(800, 1000)</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">transformers</span><span class="o">.</span><span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
-        <span class="n">model_id</span><span class="p">,</span>
+        <span class="n">model_path</span><span class="p">,</span>
         <span class="n">trust_remote_code</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">torch_dtype</span><span class="o">=</span><span class="n">bfloat16</span><span class="p">,</span>
         <span class="n">device_map</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span>
     <span class="p">)</span>
     <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">transformers</span><span class="o">.</span><span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span>
+    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">transformers</span><span class="o">.</span><span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
 
     <span class="n">generate_text</span> <span class="o">=</span> <span class="n">transformers</span><span class="o">.</span><span class="n">pipeline</span><span class="p">(</span>
         <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
