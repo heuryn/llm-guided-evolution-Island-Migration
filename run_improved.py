@@ -168,7 +168,10 @@ def write_bash_script(llm_model,
     else:
         raise ValueError("Invalid python_file argument")
 
-    bash_script_content = LLM_BASH_SCRIPT_TEMPLATE.format(job_name, LLM_GPU, python_runline)
+    if INFERENCE_SERVER:
+        bash_script_content = LLM_BASH_SCRIPT_TEMPLATE.format(job_name, python_runline)
+    else:
+        bash_script_content = LLM_BASH_SCRIPT_TEMPLATE.format(job_name, LLM_GPU, python_runline)
     return bash_script_content
 
 def create_bash_file(file_path, **kwargs):

@@ -5,6 +5,40 @@ ROOT_DIR = "/home/hice1/<username>/scratch/llm-guided-evolution-Island-Migration
 # LLM_GPU = 'H200|H100|A100-80GB|A100-40GB|A40|RTX6000|V100-32GB|V100-16GB'
 LLM_GPU = 'H200|H100'
 
+#: Template script for starting an LLM inference server
+LLM_INFERENCE_SERVER_TEMPLATE = """#!/bin/bash
+#SBATCH --job-name=server
+#SBATCH -t 8:00:00
+#SBATCH --nodes=1
+#SBATCH -G 2
+#SBATCH -C "A100-80GB|H100|H200"
+#SBATCH --mem 160G
+#SBATCH -c 16
+#SBATCH --output=run_job_outputs/servers/slurm-%j.out
+
+echo "launching LLM Server"
+
+hostname
+
+module load cuda
+module load uv
+
+# Make sure CUDA can see all GPUs
+export CUDA_VISIBLE_DEVICES=0,1
+
+export SERVER_HOSTNAME=$(hostname)
+
+HOSTNAME_FILE=$(pwd)"/hostname.log"
+
+echo "Writing server hostname '$SERVER_HOSTNAME' to file: $HOSTNAME_FILE"
+echo "$SERVER_HOSTNAME" >> "$HOSTNAME_FILE"
+echo "Starting LLM server on host: $SERVER_HOSTNAME"
+
+uv run python server.py --host $SERVER_HOSTNAME --port {} --workers 1 --model_path {}
+
+echo "Started LLM Server"
+"""
+
 #: Template script for submitting job for evaluation
 PYTHON_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=evaluateGene
@@ -34,7 +68,7 @@ uv run {}
 """
 
 #: Template script for submitting a prompt to the LLM
-LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
+LLM_LOCAL_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name={}
 #SBATCH --time=03:00:00
 #SBATCH -N1 --ntasks-per-node=32
@@ -44,6 +78,26 @@ LLM_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH -C "{}"
 #SBATCH --mem-per-gpu 80G
 
+echo "Launching AIsurBL"
+hostname
+
+module load cuda/12
+
+CUDA_LAUNCH_BLOCKING=1
+
+# Set the TOKENIZERS_PARALLELISM environment variable if needed
+# export TOKENIZERS_PARALLELISM=false
+export HF_HOME=/storage/ice-shared/vip-vvk/llm_storage/
+
+# Run Python script
+uv run {}
+"""
+
+#: Template script for submitting a prompt to the LLM Inference Server
+LLM_SERVER_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
+#SBATCH --job-name={}
+#SBATCH --time=03:00:00
+#SBATCH --output=run_job_outputs/evolution/slurm-%j.out
 
 echo "Launching AIsurBL"
 hostname
@@ -63,12 +117,8 @@ uv run {}
 #: Template script for submitting an island run
 ISLANDS_BASH_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name=LLM_Island_{}
-#SBATCH -N1 --ntasks-per-node=32
-#SBATCH --mem-per-gpu=32G
 #SBATCH --time=16:00:00
 #SBATCH --output=run_job_outputs/islands/Report_islands-%j.out
-#SBATCH --gres=gpu:1
-#SBATCH -C intel
 
 cd $SLURM_SUBMIT_DIR
 echo "launching AIsurBL"
